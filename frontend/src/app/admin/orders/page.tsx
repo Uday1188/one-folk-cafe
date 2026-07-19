@@ -1,0 +1,347 @@
+'use client';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, X as XIcon, Calendar, Hash, ChevronDown, Check } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchOrders, updateOrderStatus, fetchTables, fetchOrderCounts } from '@/lib/api';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { toast } from 'sonner';
+import Link from 'next/link';
+
+export default function AdminOrders() {
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<string>("all");
+  const [tableFilter, setTableFilter] = useState<string>("all");
+  const [isTableDropdownOpen, setIsTableDropdownOpen] = useState(false);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [page, setPage] = useState<number>(0);
+  const [viewOrder, setViewOrder] = useState<any | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+
+  const { data: tables = [] } = useQuery({ queryKey: ['tables'], queryFn: fetchTables });
+  const { data: counts = {} } = useQuery({ queryKey: ['orderCounts'], queryFn: fetchOrderCounts });
+
+  const { data: orders = [], isLoading } = useQuery({ 
+    queryKey: ['orders', filter, tableFilter, startDate, endDate, page], 
+    queryFn: () => fetchOrders({
+      page: page,
+      size: 10,
+      status: filter,
+      tableNumber: tableFilter,
+      startDate: startDate ? new Date(startDate).toISOString() : undefined,
+      endDate: endDate ? (() => {
+        const d = new Date(endDate);
+        d.setHours(23, 59, 59, 999);
+        return d.toISOString();
+      })() : undefined
+    })
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewId = params.get('viewOrder');
+    if (viewId && orders.length > 0) {
+      const order = orders.find((o: any) => o.id === Number(viewId));
+      if (order) setViewOrder(order);
+      // Clean up URL without reloading
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [orders]);
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => updateOrderStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['orderCounts'] });
+      toast.success('Order status updated!');
+    },
+    onError: () => {
+      toast.error('Failed to update order status');
+    }
+  });
+
+  const handleUpdateStatus = (id: number, status: string) => {
+    updateStatusMutation.mutate({ id, status });
+    if (viewOrder && viewOrder.id === id) {
+      setViewOrder({ ...viewOrder, status });
+    }
+  };
+
+  const fmtPrice = (p: number) => `₹${p.toLocaleString("en-IN")}`;
+  const timeSince = (isoString: string): string => {
+    const diff = Date.now() - new Date(isoString).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    return `${Math.floor(mins / 60)}h ago`;
+  };
+  const fmtTime = (isoString: string) => {
+    const d = new Date(isoString);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Orders</h1>
+          <p className="text-muted-foreground text-sm mt-1">{counts['ALL'] || 0} total orders</p>
+        </div>
+        <Link href="/admin/orders/new" className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors">
+          + New Order
+        </Link>
+      </div>
+
+      {/* Filters Bar */}
+      <div className="flex flex-col md:flex-row gap-4 p-4 bg-card rounded-2xl border border-border shadow-sm">
+        {/* Status Tabs */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-1">
+          {(["all", "pending", "preparing", "completed", "cancelled"]).map(s => {
+            const count = counts[s === 'all' ? 'ALL' : s.toUpperCase()] || 0;
+            return (
+              <button key={s} onClick={() => { setFilter(s); setPage(0); }}
+                className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${filter === s ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+                {s}
+                <span className="ml-1.5 text-xs opacity-80">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Dynamic Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <button 
+              onClick={() => setIsTableDropdownOpen(!isTableDropdownOpen)}
+              className="flex items-center gap-2 pl-3 pr-4 py-2 bg-secondary border border-border rounded-xl text-sm focus:ring-2 focus:ring-accent outline-none font-medium hover:bg-secondary/80 transition-colors min-w-[140px]"
+            >
+              <Hash className="w-4 h-4 text-muted-foreground" />
+              <span>{tableFilter === 'all' ? 'All Tables' : `Table ${tableFilter}`}</span>
+            </button>
+
+            <AnimatePresence>
+              {isTableDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsTableDropdownOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 mt-2 w-48 bg-card rounded-2xl border border-border shadow-xl z-50 overflow-hidden py-2"
+                  >
+                    <div className="max-h-[250px] overflow-y-auto scrollbar-hide">
+                      <button
+                        onClick={() => { setTableFilter("all"); setIsTableDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/60 ${tableFilter === "all" ? "text-accent bg-accent/5" : "text-foreground"}`}
+                      >
+                        All Tables
+                      </button>
+                      {tables.map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => { setTableFilter(t.tableNumber); setIsTableDropdownOpen(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/60 ${tableFilter === t.tableNumber ? "text-accent bg-accent/5" : "text-foreground"}`}
+                        >
+                          Table {t.tableNumber}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-1 border border-border focus-within:ring-2 focus-within:ring-accent transition-all">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent text-sm font-medium outline-none"
+            />
+            <span className="text-muted-foreground text-sm">-</span>
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent text-sm font-medium outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm">
+        <div className="overflow-x-auto rounded-t-2xl pb-24 -mb-24">
+          <table className="w-full text-sm min-w-[700px]">
+            <thead><tr className="bg-secondary/50 text-left">
+              {["Order ID", "Table", "Items", "Total", "Status", "Date & Time", "Actions"].map(h => (
+                <th key={h} className="px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr></thead>
+            <tbody className="divide-y divide-border">
+              {isLoading ? (
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">Loading orders...</td></tr>
+              ) : orders.map((o: any) => (
+                <tr key={o.id} onClick={() => setViewOrder(o)} className="hover:bg-secondary/20 transition-colors cursor-pointer">
+                  <td className="px-5 py-4 font-mono font-bold text-xs text-primary">{o.id}</td>
+                  <td className="px-5 py-4 font-bold text-accent">{o.tableNumber}</td>
+                  <td className="px-5 py-4 text-muted-foreground">{o.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0} items</td>
+                  <td className="px-5 py-4 font-bold text-primary">{fmtPrice(o.totalAmount || o.total)}</td>
+                  <td className="px-5 py-4"><StatusBadge status={o.status} /></td>
+                  <td className="px-5 py-4">
+                    <div className="text-sm font-semibold">{new Date(o.createdAt).toLocaleDateString('en-GB')}</div>
+                    <div className="text-xs text-muted-foreground">{timeSince(o.createdAt)}</div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => setViewOrder(o)} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-accent/10 text-muted-foreground hover:text-accent transition-colors">
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenDropdownId(openDropdownId === o.id ? null : o.id);
+                          }}
+                          className="flex items-center justify-between gap-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 border border-border rounded-lg px-2.5 py-1.5 transition-colors min-w-[100px]"
+                        >
+                          <span className="capitalize">{o.status.toLowerCase()}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                        
+                        <AnimatePresence>
+                          {openDropdownId === o.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpenDropdownId(null); }} />
+                              <motion.div
+                                initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute right-0 top-full mt-1 w-36 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-1.5"
+                              >
+                                {(["pending", "preparing", "completed", "cancelled"]).map(s => (
+                                  <button
+                                    key={s}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleUpdateStatus(o.id, s.toUpperCase());
+                                      setOpenDropdownId(null);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold transition-colors ${o.status.toLowerCase() === s ? "text-accent bg-accent/10" : "text-foreground hover:bg-secondary"}`}
+                                  >
+                                    <span className="capitalize">{s}</span>
+                                    {o.status.toLowerCase() === s && <Check className="w-3 h-3" />}
+                                  </button>
+                                ))}
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {orders.length === 0 && !isLoading && (
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">No orders found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-secondary/10">
+          <button 
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="px-4 py-2 text-sm font-semibold rounded-xl bg-secondary hover:bg-secondary/80 disabled:opacity-50 transition-colors"
+          >
+            Previous
+          </button>
+          <span className="text-sm font-medium text-muted-foreground">Page {page + 1}</span>
+          <button 
+            onClick={() => setPage(p => p + 1)}
+            disabled={orders.length < 10}
+            className="px-4 py-2 text-sm font-semibold rounded-xl bg-secondary hover:bg-secondary/80 disabled:opacity-50 transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      {/* View Modal */}
+      <AnimatePresence>
+        {viewOrder && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setViewOrder(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-card rounded-3xl border border-border w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-5 border-b border-border bg-secondary/30">
+                <h3 className="font-bold flex items-center gap-2">Order <span className="font-mono text-primary text-sm bg-primary/10 px-2 py-1 rounded-md">{viewOrder.id}</span></h3>
+                <button onClick={() => setViewOrder(null)} className="w-8 h-8 rounded-xl hover:bg-secondary flex items-center justify-center">
+                  <XIcon className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-6 space-y-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="font-semibold text-lg">{viewOrder.customer?.name || 'Guest'}</div>
+                    <div className="text-sm font-bold text-accent mt-0.5">Table: {viewOrder.tableNumber}</div>
+                  </div>
+                  <StatusBadge status={viewOrder.status} />
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-secondary/50 rounded-xl p-3 border border-border/50">
+                    <div className="text-xs text-muted-foreground">Order Date</div>
+                    <div className="font-bold mt-0.5">{new Date(viewOrder.createdAt).toLocaleDateString()}</div>
+                  </div>
+                  <div className="bg-secondary/50 rounded-xl p-3 border border-border/50">
+                    <div className="text-xs text-muted-foreground">Time</div>
+                    <div className="font-bold mt-0.5">{fmtTime(viewOrder.createdAt)}</div>
+                  </div>
+                </div>
+                <div>
+                  <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Items ({viewOrder.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0})</h5>
+                  <div className="space-y-3 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                    {viewOrder.items?.map((item: any) => (
+                      <div key={item.id} className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{item.productName || item.product?.name} <span className="text-muted-foreground text-xs ml-1">×{item.quantity}</span></span>
+                        <span className="font-semibold">{fmtPrice((item.price || item.product?.price || 0) * item.quantity)}</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-border/60 pt-3 mt-1 flex justify-between font-bold text-base">
+                      <span>Total</span>
+                      <span className="text-primary">{fmtPrice(viewOrder.totalAmount || viewOrder.total)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Update Status</h5>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {(["pending", "preparing", "completed", "cancelled"]).map(s => (
+                      <button key={s} onClick={() => handleUpdateStatus(viewOrder.id, s.toUpperCase())}
+                        className={`py-2.5 rounded-xl text-xs font-semibold capitalize transition-all border ${viewOrder.status.toLowerCase() === s ? "bg-primary text-primary-foreground border-primary shadow-md" : "bg-secondary/50 hover:bg-secondary border-border"}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 border-t border-border pt-4">Modify Order</h5>
+                  <Link href={`/admin/orders/${viewOrder.id}`}
+                    className="flex items-center justify-center w-full py-2.5 bg-accent/10 text-accent font-semibold rounded-xl text-sm hover:bg-accent/20 transition-colors border border-accent/20">
+                    Edit Items / Table
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

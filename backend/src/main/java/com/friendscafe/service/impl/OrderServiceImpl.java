@@ -1,0 +1,216 @@
+package com.friendscafe.service.impl;
+
+import com.friendscafe.dto.OrderDto;
+import com.friendscafe.dto.OrderItemRequest;
+import com.friendscafe.dto.OrderRequest;
+import com.friendscafe.entity.*;
+import com.friendscafe.exception.ResourceNotFoundException;
+import com.friendscafe.mapper.OrderMapper;
+import com.friendscafe.repository.CustomerRepository;
+import com.friendscafe.repository.NotificationRepository;
+import com.friendscafe.repository.OrderRepository;
+import com.friendscafe.repository.ProductRepository;
+import com.friendscafe.repository.CafeTableRepository;
+import com.friendscafe.service.OrderService;
+import com.friendscafe.specification.OrderSpecification;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class OrderServiceImpl implements OrderService {
+
+    private final OrderRepository orderRepository;
+    private final CustomerRepository customerRepository;
+    private final ProductRepository productRepository;
+    private final NotificationRepository notificationRepository;
+    private final CafeTableRepository cafeTableRepository;
+    private final OrderMapper orderMapper;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    @Override
+    @Transactional
+    public OrderDto createOrder(OrderRequest orderRequest) {
+        Customer customer = null;
+        if (orderRequest.getCustomerMobile() != null && !orderRequest.getCustomerMobile().isBlank()) {
+            Optional<Customer> existingCustomer = customerRepository.findFirstByMobileOrderByIdDesc(orderRequest.getCustomerMobile());
+            if (existingCustomer.isPresent()) {
+                customer = existingCustomer.get();
+                // Update name if it has changed
+                if (orderRequest.getCustomerName() != null && !customer.getName().equals(orderRequest.getCustomerName())) {
+                    customer.setName(orderRequest.getCustomerName());
+                    customer = customerRepository.save(customer);
+                }
+            } else {
+                customer = Customer.builder()
+                        .name(orderRequest.getCustomerName() != null ? orderRequest.getCustomerName() : "Guest")
+                        .mobile(orderRequest.getCustomerMobile())
+                        .build();
+                customer = customerRepository.save(customer);
+            }
+        }
+
+        if (orderRequest.getTableNumber() != null && !orderRequest.getTableNumber().isBlank()) {
+            if (!cafeTableRepository.existsByTableNumber(orderRequest.getTableNumber())) {
+                throw new IllegalArgumentException("Invalid table number: " + orderRequest.getTableNumber());
+            }
+        }
+
+        // Initialize Order
+        Order order = Order.builder()
+                .customer(customer)
+                .tableNumber(orderRequest.getTableNumber())
+                .status(OrderStatus.PENDING)
+                .totalAmount(BigDecimal.ZERO)
+                .build();
+
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (OrderItemRequest itemRequest : orderRequest.getItems()) {
+            Product product = productRepository.findById(itemRequest.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemRequest.getProductId()));
+            
+            OrderItem orderItem = OrderItem.builder()
+                    .product(product)
+                    .quantity(itemRequest.getQuantity())
+                    .price(product.getPrice())
+                    .build();
+            
+            order.addItem(orderItem);
+            
+            BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+            total = total.add(itemTotal);
+        }
+
+        order.setTotalAmount(total);
+        Order savedOrder = orderRepository.save(order);
+        
+        // Save and send notification
+        Notification notification = Notification.builder()
+                .message("New Order Received from Table " + savedOrder.getTableNumber())
+                .orderId(savedOrder.getId())
+                .isRead(false)
+                .build();
+        Notification savedNotification = notificationRepository.save(notification);
+        
+        messagingTemplate.convertAndSend("/topic/notifications", savedNotification);
+        
+        return orderMapper.toDto(savedOrder);
+    }
+
+    @Override
+    public Page<OrderDto> getAllOrders(Pageable pageable) {
+        return orderRepository.findAll(pageable).map(orderMapper::toDto);
+    }
+
+    @Override
+    public OrderDto getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        return orderMapper.toDto(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderDto updateOrderStatus(Long id, OrderStatus status) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        order.setStatus(status);
+        Order updatedOrder = orderRepository.save(order);
+        return orderMapper.toDto(updatedOrder);
+    }
+
+    @Override
+    @Transactional
+    public OrderDto updateOrder(Long id, OrderRequest orderRequest) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        
+        order.setTableNumber(orderRequest.getTableNumber());
+        
+        // Clear existing items and recalculate total
+        order.getItems().clear();
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (OrderItemRequest itemRequest : orderRequest.getItems()) {
+            Product product = productRepository.findById(itemRequest.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemRequest.getProductId()));
+            
+            OrderItem orderItem = OrderItem.builder()
+                    .product(product)
+                    .quantity(itemRequest.getQuantity())
+                    .price(product.getPrice())
+                    .build();
+            
+            order.addItem(orderItem);
+            
+            BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+            total = total.add(itemTotal);
+        }
+
+        order.setTotalAmount(total);
+        Order updatedOrder = orderRepository.save(order);
+        return orderMapper.toDto(updatedOrder);
+    }
+
+    @Override
+    @Transactional
+    public void deleteOrder(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        orderRepository.delete(order);
+    }
+
+    @Override
+    public Page<OrderDto> filterByStatus(OrderStatus status, Pageable pageable) {
+        return orderRepository.findByStatus(status, pageable).map(orderMapper::toDto);
+    }
+
+    @Override
+    public Page<OrderDto> filterByDate(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        return orderRepository.findByDateRange(startDate, endDate, pageable).map(orderMapper::toDto);
+    }
+
+    @Override
+    public Page<OrderDto> searchByCustomer(String customerNameOrMobile, Pageable pageable) {
+        return orderRepository.searchByCustomer(customerNameOrMobile, pageable).map(orderMapper::toDto);
+    }
+
+    @Override
+    public Page<OrderDto> searchOrders(OrderStatus status, String tableNumber, String search, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        Specification<Order> spec = OrderSpecification.getOrdersByCriteria(status, tableNumber, search, startDate, endDate);
+        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
+        return orderPage.map(orderMapper::toDto);
+    }
+    
+    @Override
+    public Map<String, Long> getOrderCountsByStatus() {
+        List<Object[]> results = orderRepository.countOrdersByStatus();
+        Map<String, Long> counts = new HashMap<>();
+        long total = 0;
+        
+        for (Object[] result : results) {
+            if (result[0] != null) {
+                String status = ((OrderStatus) result[0]).name();
+                Long count = (Long) result[1];
+                counts.put(status, count);
+                total += count;
+            }
+        }
+        
+        counts.put("ALL", total);
+        return counts;
+    }
+}

@@ -1,0 +1,22 @@
+package com.friendscafe.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+public class OrderRequest {
+
+    private String customerName;
+
+    private String customerMobile;
+
+    @NotBlank(message = "Table number is required")
+    private String tableNumber;
+
+    @NotEmpty(message = "Order must have at least one item")
+    private List<OrderItemRequest> items;
+}
