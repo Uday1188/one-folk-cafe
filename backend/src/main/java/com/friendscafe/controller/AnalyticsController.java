@@ -26,20 +26,22 @@ public class AnalyticsController {
 
     @GetMapping("/dashboard")
     @Operation(summary = "Get main dashboard metrics")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboardMetrics(@RequestParam(defaultValue = "monthly") String filter) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboardMetrics(@RequestParam(defaultValue = "today") String filter) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Dashboard metrics fetched successfully", analyticsService.getDashboardMetrics(filter)));
     }
 
     @GetMapping("/top-products")
     @Operation(summary = "Get top selling products")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTopSellingProducts(@RequestParam(defaultValue = "5") int limit) {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Top products fetched successfully", analyticsService.getTopSellingProducts(limit)));
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTopSellingProducts(
+            @RequestParam(defaultValue = "today") String filter,
+            @RequestParam(defaultValue = "5") int limit) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Top products fetched successfully", analyticsService.getTopSellingProducts(filter, limit)));
     }
 
     @GetMapping("/top-categories")
     @Operation(summary = "Get top products by revenue with date filters")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTopProductsByRevenue(
-            @RequestParam(defaultValue = "monthly") String filter,
+            @RequestParam(defaultValue = "today") String filter,
             @RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Top products fetched successfully", analyticsService.getTopProductsByRevenue(filter, limit)));
     }

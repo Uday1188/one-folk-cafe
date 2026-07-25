@@ -16,45 +16,59 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.friendscafe.mapper.OrderMapper;
+import java.util.Collections;
+
 @Service
 @RequiredArgsConstructor
 public class AnalyticsService implements IAnalyticsService {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final OrderMapper orderMapper;
+
+    private LocalDateTime[] getDateRange(String filter) {
+        LocalDateTime now = LocalDateTime.now();
+        if ("monthly".equalsIgnoreCase(filter)) {
+            return new LocalDateTime[]{
+                LocalDate.now().with(TemporalAdjusters.firstDayOfMonth()).atStartOfDay(),
+                LocalDate.now().with(TemporalAdjusters.lastDayOfMonth()).atTime(LocalTime.MAX)
+            };
+        } else if ("weekly".equalsIgnoreCase(filter)) {
+            return new LocalDateTime[]{
+                LocalDate.now().minusDays(6).atStartOfDay(),
+                LocalDate.now().atTime(LocalTime.MAX)
+            };
+        } else {
+            // today or daily (default)
+            return new LocalDateTime[]{
+                LocalDate.now().atStartOfDay(),
+                LocalDate.now().atTime(LocalTime.MAX)
+            };
+        }
+    }
 
     @Override
     public Map<String, Object> getDashboardMetrics(String filter) {
         Map<String, Object> metrics = new HashMap<>();
         
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+        LocalDateTime[] dateRange = getDateRange(filter);
+        LocalDateTime startDate = dateRange[0];
+        LocalDateTime endDate = dateRange[1];
         
-        // Today's summary card (always today regardless of filter)
-        Double todaysSales = orderRepository.sumRevenueInDateRange(startOfDay, endOfDay);
-        metrics.put("todaysSales", todaysSales != null ? todaysSales : 0.0);
-        long todaysOrdersCount = orderRepository.countOrdersInDateRange(startOfDay, endOfDay);
-        metrics.put("todaysOrders", todaysOrdersCount);
-
-        // Calculate dynamic date range based on filter
-        LocalDateTime startDate = startOfDay;
-        LocalDateTime endDate = endOfDay;
+        Double totalSales = orderRepository.sumRevenueInDateRange(startDate, endDate);
+        double revenue = totalSales != null ? totalSales : 0.0;
+        metrics.put("todaysSales", revenue);
+        metrics.put("totalSales", revenue);
         
-        if ("monthly".equalsIgnoreCase(filter)) {
-            startDate = LocalDate.now().minusMonths(12).withDayOfMonth(1).atStartOfDay();
-        } else if ("weekly".equalsIgnoreCase(filter)) {
-            startDate = LocalDate.now().minusWeeks(12).atStartOfDay(); // Last 12 weeks
-        } else {
-            // daily (default) - last 30 days
-            startDate = LocalDate.now().minusDays(30).atStartOfDay();
-        }
+        long totalOrdersCount = orderRepository.countOrdersInDateRange(startDate, endDate);
+        metrics.put("todaysOrders", totalOrdersCount);
+        metrics.put("totalOrders", totalOrdersCount);
 
         // Fetch charts data based on dynamic date range
         List<Object[]> revenueTrend;
-        if ("monthly".equalsIgnoreCase(filter)) {
-            revenueTrend = orderRepository.getMonthlyRevenueTrend(startDate, endDate);
-        } else if ("weekly".equalsIgnoreCase(filter)) {
-            revenueTrend = orderRepository.getWeeklyRevenueTrend(startDate, endDate);
+        if ("today".equalsIgnoreCase(filter) || "daily".equalsIgnoreCase(filter)) {
+            revenueTrend = orderRepository.getHourlyRevenueTrend(startDate, endDate);
         } else {
             revenueTrend = orderRepository.getDailyRevenueTrend(startDate, endDate);
         }
@@ -78,32 +92,34 @@ public class AnalyticsService implements IAnalyticsService {
         metrics.put("orderStatusPieData", orderStatusPieData);
 
         // Calculate total summary counts for the selected time range (for the cards)
-        long pending = 0, preparing = 0, completed = 0, cancelled = 0;
+        long pending = 0, completed = 0, cancelled = 0;
         for (Map<String, Object> point : orderStatusPieData) {
             String status = (String) point.get("name");
-            long count = (long) point.get("value");
+            long count = ((Number) point.get("value")).longValue();
             switch (status) {
                 case "PENDING": pending = count; break;
-                case "PREPARING": preparing = count; break;
                 case "COMPLETED": completed = count; break;
                 case "CANCELLED": cancelled = count; break;
             }
         }
         
         metrics.put("pendingOrdersCount", pending);
-        metrics.put("preparingOrdersCount", preparing);
         metrics.put("completedOrdersCount", completed);
         metrics.put("cancelledOrdersCount", cancelled);
+
+        List<Object> recentOrders = orderRepository.findRecentOrdersInDateRange(startDate, endDate, PageRequest.of(0, 10))
+                .stream()
+                .map(orderMapper::toDto)
+                .collect(Collectors.toList());
+        metrics.put("recentOrders", recentOrders);
 
         return metrics;
     }
 
     @Override
-    public List<Map<String, Object>> getTopSellingProducts(int limit) {
-        LocalDateTime startOfMonth = LocalDate.now().with(TemporalAdjusters.firstDayOfMonth()).atStartOfDay();
-        LocalDateTime endOfMonth = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth()).atTime(LocalTime.MAX);
-        
-        List<Object[]> results = orderItemRepository.findTopSellingProducts(startOfMonth, endOfMonth, PageRequest.of(0, limit));
+    public List<Map<String, Object>> getTopSellingProducts(String filter, int limit) {
+        LocalDateTime[] dateRange = getDateRange(filter);
+        List<Object[]> results = orderItemRepository.findTopSellingProducts(dateRange[0], dateRange[1], PageRequest.of(0, limit));
         
         return results.stream().map(result -> {
             Map<String, Object> productStat = new HashMap<>();
@@ -115,21 +131,8 @@ public class AnalyticsService implements IAnalyticsService {
 
     @Override
     public List<Map<String, Object>> getTopProductsByRevenue(String filter, int limit) {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
-        
-        LocalDateTime startDate = startOfDay;
-        LocalDateTime endDate = endOfDay;
-        
-        if ("monthly".equalsIgnoreCase(filter)) {
-            startDate = LocalDate.now().minusMonths(12).withDayOfMonth(1).atStartOfDay();
-        } else if ("weekly".equalsIgnoreCase(filter)) {
-            startDate = LocalDate.now().minusWeeks(12).atStartOfDay();
-        } else {
-            startDate = LocalDate.now().minusDays(30).atStartOfDay();
-        }
-
-        List<Object[]> results = orderItemRepository.findTopProductsByRevenue(startDate, endDate, PageRequest.of(0, limit));
+        LocalDateTime[] dateRange = getDateRange(filter);
+        List<Object[]> results = orderItemRepository.findTopProductsByRevenue(dateRange[0], dateRange[1], PageRequest.of(0, limit));
         
         return results.stream().map(result -> {
             Map<String, Object> stat = new HashMap<>();

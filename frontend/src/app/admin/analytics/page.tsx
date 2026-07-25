@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchTopProductsByRevenue } from '@/lib/api';
 
 export default function AdminAnalytics() {
-  const [timeFilter, setTimeFilter] = useState<'daily'|'weekly'|'monthly'>('monthly');
+  const [timeFilter, setTimeFilter] = useState<'today'|'weekly'|'monthly'>('today');
 
   const { data: topProducts = [], isLoading } = useQuery({ 
     queryKey: ['topProductsByRevenue', timeFilter], 
@@ -18,7 +18,7 @@ export default function AdminAnalytics() {
         
         {/* Time Filter Toggle */}
         <div className="flex bg-secondary p-1 rounded-xl">
-          {(['daily', 'weekly', 'monthly'] as const).map(f => (
+          {(['today', 'weekly', 'monthly'] as const).map(f => (
             <button
               key={f}
               onClick={() => setTimeFilter(f)}

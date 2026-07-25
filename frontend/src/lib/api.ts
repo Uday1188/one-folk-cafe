@@ -129,6 +129,15 @@ export const updateSettings = async (settings: CafeSettings): Promise<CafeSettin
   return response.data.data;
 };
 
+export const uploadGalleryImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post<ApiResponse<string>>('/settings/upload-gallery-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data.data;
+};
+
 export const registerCustomer = async (data: { name: string; mobile: string }) => {
   const response = await api.post('/customers', data);
   return response.data.data;

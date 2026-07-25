@@ -42,7 +42,7 @@ export interface Order {
   id: number;
   customer: Customer;
   tableNumber?: string;
-  status: 'PENDING' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
   totalAmount: number;
   items: OrderItem[];
   createdAt: string;
@@ -51,7 +51,7 @@ export interface Order {
 export interface OrderRequest {
   customerName?: string;
   customerMobile?: string;
-  tableNumber: string;
+  tableNumber?: string;
   items: {
     productId: number;
     quantity: number;
@@ -72,6 +72,12 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+export interface GalleryItem {
+  src: string;
+  title: string;
+  category: string;
+}
+
 export interface CafeSettings {
   cafeName: string;
   address: string;
@@ -83,6 +89,7 @@ export interface CafeSettings {
   description?: string;
   ourStoryImage?: string;
   featuredProductIds?: number[];
+  galleryItems?: GalleryItem[];
 }
 
 export interface CafeTable {

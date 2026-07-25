@@ -30,7 +30,8 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    @Operation(summary = "Create a new order (Public for customers)")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create a new order (Admin only)")
     public ResponseEntity<ApiResponse<OrderDto>> createOrder(@Valid @RequestBody OrderRequest orderRequest) {
         OrderDto created = orderService.createOrder(orderRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, "Order placed successfully", created));

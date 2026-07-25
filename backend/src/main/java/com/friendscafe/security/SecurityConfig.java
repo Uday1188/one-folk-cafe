@@ -64,13 +64,11 @@ public class SecurityConfig {
                 auth.requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/hash").permitAll()
                     .requestMatchers("/api/public/**").permitAll() // Public endpoints if any
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll()
-                    .requestMatchers("/api/customer/**", "/api/customers/**").permitAll() // Customers place orders without login
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categories/**").permitAll()
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/settings/**").permitAll()
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/tables/**").permitAll()
-                    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders").permitAll()
-                    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/customers").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/uploads/**").permitAll()
                     .requestMatchers("/ws/**").permitAll()
                     .anyRequest().authenticated()
             );

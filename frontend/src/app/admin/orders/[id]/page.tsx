@@ -60,17 +60,13 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
   });
 
   const handleSave = () => {
-    if (!tableNumber.trim()) {
-      toast.error('Table number is required.');
-      return;
-    }
     if (items.length === 0) {
       toast.error('Add at least one item to the order.');
       return;
     }
-    
+
     saveMutation.mutate({
-      tableNumber: tableNumber.trim(),
+      tableNumber: tableNumber.trim() || "Walk-in",
       items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
     });
   };
@@ -130,7 +126,7 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
               ) : filteredProducts.map(p => (
                 <div key={p.id} onClick={() => addItem(p)} className="bg-secondary/30 border border-border/50 rounded-xl p-3 cursor-pointer hover:border-accent hover:bg-accent/5 transition-all">
                   <div className="aspect-square bg-secondary rounded-lg mb-2 overflow-hidden">
-                     <img src={p.imageUrl || p.image || 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=400&auto=format&fit=crop'} alt={p.name} className="w-full h-full object-cover" />
+                    <img src={p.imageUrl || p.image || 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=400&auto=format&fit=crop'} alt={p.name} className="w-full h-full object-cover" />
                   </div>
                   <h4 className="font-semibold text-xs leading-tight line-clamp-2 mb-1">{p.name}</h4>
                   <p className="text-accent font-bold text-sm">{fmtPrice(p.price)}</p>
@@ -144,12 +140,12 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
         <div className="lg:col-span-2">
           <div className="bg-card rounded-3xl p-6 border border-border sticky top-24">
             <h3 className="font-bold text-lg mb-4">Order Ticket</h3>
-            
+
             <div className="mb-5">
-              <label className="block text-sm font-semibold mb-2">Table No</label>
+              <label className="block text-sm font-semibold mb-2">Table No <span className="text-xs font-normal text-muted-foreground">(Optional - defaults to Walk-in)</span></label>
               <input
                 type="text"
-                placeholder="e.g. 5"
+                placeholder="e.g. 5 or leave blank for walk-in"
                 value={tableNumber}
                 onChange={e => setTableNumber(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-accent outline-none"

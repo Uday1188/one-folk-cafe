@@ -21,6 +21,9 @@ public class SettingsServiceImpl implements SettingsService {
     public SettingsDto getSettings() {
         Settings settings = settingsRepository.findById(1L)
                 .orElseThrow(() -> new ResourceNotFoundException("Settings not found"));
+        if (settings.getGalleryItems() != null && settings.getGalleryItems().size() > 6) {
+            settings.setGalleryItems(new java.util.ArrayList<>(settings.getGalleryItems().subList(0, 6)));
+        }
         return settingsMapper.toDto(settings);
     }
 
@@ -40,6 +43,12 @@ public class SettingsServiceImpl implements SettingsService {
         settings.setDescription(settingsDto.getDescription());
         settings.setOurStoryImage(settingsDto.getOurStoryImage());
         settings.setFeaturedProductIds(settingsDto.getFeaturedProductIds());
+
+        if (settingsDto.getGalleryItems() != null && settingsDto.getGalleryItems().size() > 6) {
+            settings.setGalleryItems(new java.util.ArrayList<>(settingsDto.getGalleryItems().subList(0, 6)));
+        } else {
+            settings.setGalleryItems(settingsDto.getGalleryItems());
+        }
 
         Settings updatedSettings = settingsRepository.save(settings);
         return settingsMapper.toDto(updatedSettings);

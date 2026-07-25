@@ -47,8 +47,14 @@ public class Settings {
     @Column(name = "our_story_image", columnDefinition = "TEXT")
     private String ourStoryImage;
 
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     @jakarta.persistence.ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
     @jakarta.persistence.CollectionTable(name = "settings_featured_products", joinColumns = @jakarta.persistence.JoinColumn(name = "settings_id"))
     @Column(name = "product_id")
     private java.util.List<Long> featuredProductIds;
+
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
+    @jakarta.persistence.ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
+    @jakarta.persistence.CollectionTable(name = "settings_gallery_items", joinColumns = @jakarta.persistence.JoinColumn(name = "settings_id"))
+    private java.util.List<GalleryItem> galleryItems;
 }

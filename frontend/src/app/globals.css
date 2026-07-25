@@ -141,19 +141,84 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
   h1, h2, h3, h4, h5, h6, .font-heading {
     font-family: var(--font-heading);
   }
 }
 
-/* Custom Utilities for Glassmorphism */
+/* Custom GPU-accelerated Keyframe Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+  50% { transform: translateY(-15px) rotate(-3deg) scale(1.03); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; filter: drop-shadow(0 0 15px rgba(198, 134, 66, 0.3)); }
+  50% { opacity: 0.8; filter: drop-shadow(0 0 25px rgba(198, 134, 66, 0.6)); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Custom Utilities for Premium Glassmorphism & Animations */
 @layer utilities {
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+  
+  .animate-float-slow {
+    animation: float-slow 7s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.03) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+  }
+
   .glass {
     @apply bg-white/40 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)];
   }
   
   .glass-card {
-    @apply bg-white/70 dark:bg-[#271C19]/70 backdrop-blur-lg border border-white/30 dark:border-white/10 shadow-lg rounded-2xl;
+    @apply bg-white/70 dark:bg-[#271C19]/70 backdrop-blur-lg border border-white/30 dark:border-white/10 shadow-lg rounded-3xl;
+  }
+
+  .glass-luxury {
+    @apply bg-white/80 dark:bg-[#241d18]/80 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] transition-all duration-500;
+  }
+
+  .glow-btn {
+    @apply relative overflow-hidden transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-accent/30 active:scale-95;
+  }
+
+  /* Force hardware GPU acceleration for smooth 60 FPS mobile transforms & opacity */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+}
+
+/* Accessibility: Seamless support for users with motion sensitivity or reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

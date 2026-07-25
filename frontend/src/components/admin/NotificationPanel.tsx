@@ -34,8 +34,14 @@ export function NotificationPanel() {
     router.push(`/admin/orders?viewOrder=${notification.orderId}`);
   };
 
+  const parseUTC = (str: string) => {
+    if (!str) return new Date();
+    const cleanStr = str.endsWith('Z') || str.includes('+') || str.includes('-0') || (str.length > 10 && str.charAt(str.length - 6) === '-') || (str.length > 10 && str.charAt(str.length - 6) === '+') ? str : str + 'Z';
+    return new Date(cleanStr);
+  };
+
   const timeSince = (dateString: string) => {
-    const diff = Date.now() - new Date(dateString).getTime();
+    const diff = Math.max(0, Date.now() - parseUTC(dateString).getTime());
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'Just now';
     if (mins < 60) return `${mins}m ago`;

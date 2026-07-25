@@ -62,16 +62,14 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        if (orderRequest.getTableNumber() != null && !orderRequest.getTableNumber().isBlank()) {
-            if (!cafeTableRepository.existsByTableNumber(orderRequest.getTableNumber())) {
-                throw new IllegalArgumentException("Invalid table number: " + orderRequest.getTableNumber());
-            }
-        }
+        String tableNum = (orderRequest.getTableNumber() != null && !orderRequest.getTableNumber().isBlank()) 
+                ? orderRequest.getTableNumber().trim() 
+                : "Walk-in";
 
         // Initialize Order
         Order order = Order.builder()
                 .customer(customer)
-                .tableNumber(orderRequest.getTableNumber())
+                .tableNumber(tableNum)
                 .status(OrderStatus.PENDING)
                 .totalAmount(BigDecimal.ZERO)
                 .build();
@@ -98,8 +96,11 @@ public class OrderServiceImpl implements OrderService {
         Order savedOrder = orderRepository.save(order);
         
         // Save and send notification
+        String tableMsg = "Walk-in".equalsIgnoreCase(savedOrder.getTableNumber()) 
+                ? "Walk-in Customer" 
+                : "Table " + savedOrder.getTableNumber();
         Notification notification = Notification.builder()
-                .message("New Order Received from Table " + savedOrder.getTableNumber())
+                .message("New Order Received from " + tableMsg)
                 .orderId(savedOrder.getId())
                 .isRead(false)
                 .build();
@@ -138,7 +139,10 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
         
-        order.setTableNumber(orderRequest.getTableNumber());
+        String tableNum = (orderRequest.getTableNumber() != null && !orderRequest.getTableNumber().isBlank()) 
+                ? orderRequest.getTableNumber().trim() 
+                : "Walk-in";
+        order.setTableNumber(tableNum);
         
         // Clear existing items and recalculate total
         order.getItems().clear();

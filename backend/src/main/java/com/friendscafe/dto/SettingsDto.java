@@ -20,4 +20,5 @@ public class SettingsDto {
     private String description;
     private String ourStoryImage;
     private java.util.List<Long> featuredProductIds;
+    private java.util.List<com.friendscafe.entity.GalleryItem> galleryItems;
 }

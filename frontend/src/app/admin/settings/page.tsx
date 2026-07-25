@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Store, MapPin, Phone, Mail, Clock, Check, Heart, AlignLeft, ScanLine, Download, Image, Upload, X } from 'lucide-react';
+import { Store, MapPin, Phone, Mail, Clock, Check, Heart, AlignLeft, ScanLine, Download, Image, Upload, X, Plus, Trash2 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchSettings, updateSettings, fetchProducts } from '@/lib/api';
+import { fetchSettings, updateSettings, fetchProducts, uploadGalleryImage } from '@/lib/api';
 import { CafeSettings, Product } from '@/types';
 
 export default function AdminSettings() {
@@ -33,7 +33,8 @@ export default function AdminSettings() {
     cafeName: "", address: "",
     phone: "", email: "",
     openTime: "", closeTime: "",
-    instagramLink: "", description: ""
+    instagramLink: "", description: "",
+    galleryItems: []
   });
 
   const { data: serverSettings, isLoading } = useQuery({
@@ -59,22 +60,76 @@ export default function AdminSettings() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettings({ ...settings, ourStoryImage: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const imageUrl = await uploadGalleryImage(file);
+        setSettings({ ...settings, ourStoryImage: imageUrl });
+        toast.success("Image uploaded successfully");
+      } catch {
+        toast.error("Failed to upload image");
+      }
     }
   };
 
+  const MAX_GALLERY_ITEMS = 6;
+
+  const handleGalleryAdd = () => {
+    if ((settings.galleryItems || []).length >= MAX_GALLERY_ITEMS) {
+      toast.error(`You can add up to ${MAX_GALLERY_ITEMS} gallery photos only`);
+      return;
+    }
+    const defaultPhoto = {
+      src: "",
+      title: "New Atmosphere Experience",
+      category: "Cafe Vibe"
+    };
+    setSettings({ ...settings, galleryItems: [...(settings.galleryItems || []), defaultPhoto] });
+  };
+
+  const handleGalleryChange = (index: number, field: string, value: string) => {
+    const updated = [...(settings.galleryItems || [])];
+    updated[index] = { ...updated[index], [field]: value };
+    setSettings({ ...settings, galleryItems: updated });
+  };
+
+  const handleGalleryDelete = (index: number) => {
+    const updated = (settings.galleryItems || []).filter((_, i) => i !== index);
+    setSettings({ ...settings, galleryItems: updated });
+  };
+
+  const resolveImageUrl = (src: string) => {
+    if (!src) return '';
+    if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) return src;
+    const backendBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/api$/, '');
+    return backendBase + src;
+  };
+
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+
+  const handleGalleryImageUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        setUploadingIndex(index);
+        const imageUrl = await uploadGalleryImage(file);
+        handleGalleryChange(index, "src", imageUrl);
+        toast.success("Gallery image uploaded");
+      } catch {
+        toast.error("Failed to upload gallery image");
+      } finally {
+        setUploadingIndex(null);
+      }
+    }
+  };
 
   useEffect(() => {
     if (serverSettings) {
-      // eslint-disable-next-line
-      setSettings(serverSettings);
+      setSettings({
+        ...serverSettings,
+        galleryItems: (serverSettings.galleryItems || []).slice(0, MAX_GALLERY_ITEMS)
+      });
     }
   }, [serverSettings]);
 
@@ -89,7 +144,11 @@ export default function AdminSettings() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate(settings);
+    const payload = {
+      ...settings,
+      galleryItems: (settings.galleryItems || []).slice(0, MAX_GALLERY_ITEMS)
+    };
+    updateMutation.mutate(payload);
   };
 
   if (isLoading) {
@@ -198,13 +257,13 @@ export default function AdminSettings() {
                   </div>
                   <div className="p-4 rounded-xl bg-secondary/50 border border-border">
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      This URL is securely loaded from your environment file. By default, it points to your home page where customers can enter their details to order.
+                      This URL is securely loaded from your environment file. By default, it points to your home page where customers can view your digital menu and café showcase.
                     </p>
                   </div>
                 </div>
                 <div className="mx-auto w-full max-w-[220px] p-6 bg-white rounded-2xl shadow-sm border border-border flex flex-col items-center gap-3">
                   <QRCodeCanvas id="qr-canvas" value={baseUrl} size={150} level="M" includeMargin={true} style={{ width: '100%', height: 'auto' }} />
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Scan to Order</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Scan for Menu</span>
                   <button type="button" onClick={downloadQR}
                     className="mt-3 flex items-center gap-2 px-4 py-2 w-full justify-center rounded-xl bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/80 transition-colors">
                     <Download className="w-3.5 h-3.5" /> Download
@@ -228,7 +287,7 @@ export default function AdminSettings() {
                   <div className="border-2 border-dashed border-border rounded-2xl p-6 flex flex-col items-center justify-center bg-input-background relative overflow-hidden group">
                     {settings.ourStoryImage ? (
                       <>
-                        <img src={settings.ourStoryImage} alt="Our Story" className="w-full h-48 object-cover rounded-xl" />
+                        <img src={resolveImageUrl(settings.ourStoryImage)} alt="Our Story" className="w-full h-48 object-cover rounded-xl" />
                         <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <label className="cursor-pointer bg-white text-black px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-gray-100 transition-colors">
                             <Upload className="w-4 h-4" /> Change Image
@@ -289,6 +348,87 @@ export default function AdminSettings() {
                     {!products?.length && <div className="text-sm text-muted-foreground p-2">No products found.</div>}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Cafe Atmosphere & Culinary Art Gallery Customization */}
+            <div className="mt-8 pt-8 border-t border-border">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-sm font-extrabold uppercase tracking-wider text-foreground">Cafe Atmosphere & Culinary Art Gallery</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">Customize photos, titles, and categories displayed in the visual hospitality showcase on your homepage.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGalleryAdd}
+                  disabled={(settings.galleryItems || []).length >= MAX_GALLERY_ITEMS}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-white font-semibold text-xs hover:bg-accent/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-4 h-4" /> Add Gallery Photo ({(settings.galleryItems || []).length}/{MAX_GALLERY_ITEMS})
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(settings.galleryItems || []).slice(0, MAX_GALLERY_ITEMS).map((item, index) => (
+                  <div key={index} className="p-4 bg-secondary/30 border border-border rounded-2xl flex flex-col gap-3 relative">
+                    <button
+                      type="button"
+                      onClick={() => handleGalleryDelete(index)}
+                      className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Remove Item"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-secondary border border-border relative flex-shrink-0 group">
+                        {uploadingIndex === index ? (
+                          <div className="w-full h-full flex items-center justify-center bg-secondary">
+                            <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        ) : item.src ? (
+                          <img src={resolveImageUrl(item.src)} alt={item.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-secondary/50">
+                            <Image className="w-6 h-6 text-muted-foreground/50" />
+                          </div>
+                        )}
+                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-[10px] text-white cursor-pointer transition-opacity">
+                          <Upload className="w-3.5 h-3.5 mb-0.5" />
+                          <span>{item.src ? 'Change' : 'Upload'}</span>
+                          <input type="file" accept="image/*" onChange={(e) => handleGalleryImageUpload(index, e)} className="hidden" />
+                        </label>
+                      </div>
+                      <div className="flex-1 space-y-2 pr-6">
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Title / Name</label>
+                          <input
+                            type="text"
+                            value={item.title}
+                            onChange={(e) => handleGalleryChange(index, 'title', e.target.value)}
+                            placeholder="e.g. Warm Cafe Atmosphere"
+                            className="w-full px-3 py-1.5 bg-background border border-border rounded-xl text-xs font-semibold outline-none focus:border-accent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Category / Tag</label>
+                          <input
+                            type="text"
+                            value={item.category}
+                            onChange={(e) => handleGalleryChange(index, 'category', e.target.value)}
+                            placeholder="e.g. Interior & Vibe"
+                            className="w-full px-3 py-1.5 bg-background border border-border rounded-xl text-xs font-semibold outline-none focus:border-accent"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(settings.galleryItems || []).length === 0 && (
+                  <div className="col-span-full py-8 text-center bg-secondary/20 rounded-2xl border border-dashed border-border text-xs text-muted-foreground font-medium">
+                    No atmosphere photos added yet. Click &quot;Add Gallery Photo&quot; to customize your homepage gallery!
+                  </div>
+                )}
               </div>
             </div>
           </div>

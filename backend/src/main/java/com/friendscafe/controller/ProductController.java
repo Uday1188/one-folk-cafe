@@ -2,6 +2,7 @@ package com.friendscafe.controller;
 
 import com.friendscafe.dto.ApiResponse;
 import com.friendscafe.dto.ProductDto;
+import com.friendscafe.service.FileStorageService;
 import com.friendscafe.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final FileStorageService fileStorageService;
 
     @GetMapping
     @Operation(summary = "Get all products")
@@ -66,10 +68,9 @@ public class ProductController {
     
     @PostMapping("/{id}/upload-image")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Simulate product image upload")
+    @Operation(summary = "Upload product image")
     public ResponseEntity<ApiResponse<String>> uploadProductImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
-        // Simulating file upload, returning a dummy URL
-        String dummyUrl = "https://example.com/images/products/" + id + "/" + file.getOriginalFilename();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Image uploaded successfully (simulated)", dummyUrl));
+        String imageUrl = fileStorageService.storeFile(file);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Image uploaded successfully", imageUrl));
     }
 }

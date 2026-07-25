@@ -1,31 +1,32 @@
 'use client';
 import { useState } from 'react';
-import { DollarSign, ShoppingBag, Clock, ChefHat, CheckCircle, XCircle } from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { DollarSign, ShoppingBag, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { fetchOrders, fetchDashboardMetrics } from '@/lib/api';
+import { fetchDashboardMetrics } from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
   COMPLETED: "#22c55e",
-  PREPARING: "#C8813A",
   PENDING: "#eab308",
   CANCELLED: "#ef4444"
 };
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [timeFilter, setTimeFilter] = useState<'daily'|'weekly'|'monthly'>('monthly');
+  const [timeFilter, setTimeFilter] = useState<'today'|'weekly'|'monthly'>('today');
   
   const { data: metrics, isLoading: isMetricsLoading } = useQuery({ 
     queryKey: ['dashboardMetrics', timeFilter], 
     queryFn: () => fetchDashboardMetrics(timeFilter) 
   });
   
-  const { data: orders = [], isLoading: isOrdersLoading } = useQuery({ queryKey: ['orders'], queryFn: () => fetchOrders() });
+  const orders = metrics?.recentOrders || [];
+  const isOrdersLoading = isMetricsLoading;
 
   const fmtPrice = (p: number) => `₹${p?.toLocaleString("en-IN") || 0}`;
   const timeSince = (isoString: string): string => {
+    if (!isoString) return "";
     const diff = Date.now() - new Date(isoString).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "just now";
@@ -34,17 +35,28 @@ export default function AdminDashboard() {
   };
 
   const stats = [
-    { label: "Today's Revenue", value: fmtPrice(metrics?.todaysSales || 0), icon: <DollarSign className="w-5 h-5" />, color: "text-green-600", bg: "bg-green-50 dark:bg-green-900/20" },
-    { label: "Today's Orders", value: (metrics?.todaysOrders || 0).toString(), icon: <ShoppingBag className="w-5 h-5" />, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-900/20" },
+    { 
+      label: timeFilter === 'today' ? "Today's Revenue" : timeFilter === 'weekly' ? "Weekly Revenue" : "Monthly Revenue", 
+      value: fmtPrice(metrics?.totalSales ?? metrics?.todaysSales ?? 0), 
+      icon: <DollarSign className="w-5 h-5" />, 
+      color: "text-green-600", 
+      bg: "bg-green-50 dark:bg-green-900/20" 
+    },
+    { 
+      label: timeFilter === 'today' ? "Today's Orders" : timeFilter === 'weekly' ? "Weekly Orders" : "Monthly Orders", 
+      value: (metrics?.totalOrders ?? metrics?.todaysOrders ?? 0).toString(), 
+      icon: <ShoppingBag className="w-5 h-5" />, 
+      color: "text-blue-600", 
+      bg: "bg-blue-50 dark:bg-blue-900/20" 
+    },
     { label: "Pending", value: (metrics?.pendingOrdersCount || 0).toString(), icon: <Clock className="w-5 h-5" />, color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-900/20" },
-    { label: "Preparing", value: (metrics?.preparingOrdersCount || 0).toString(), icon: <ChefHat className="w-5 h-5" />, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-900/20" },
     { label: "Completed", value: (metrics?.completedOrdersCount || 0).toString(), icon: <CheckCircle className="w-5 h-5" />, color: "text-green-600", bg: "bg-green-50 dark:bg-green-900/20" },
     { label: "Cancelled", value: (metrics?.cancelledOrdersCount || 0).toString(), icon: <XCircle className="w-5 h-5" />, color: "text-red-600", bg: "bg-red-50 dark:bg-red-900/20" },
   ];
 
   const pieData = (metrics?.orderStatusPieData || []).map((d: any) => ({
     ...d,
-    color: STATUS_COLORS[d.name] || "#gray"
+    color: STATUS_COLORS[d.name] || "#6b7280"
   }));
 
   const revenueData = metrics?.revenueChartData || [];
@@ -59,7 +71,7 @@ export default function AdminDashboard() {
         
         {/* Time Filter Toggle */}
         <div className="flex bg-secondary p-1 rounded-xl">
-          {(['daily', 'weekly', 'monthly'] as const).map(f => (
+          {(['today', 'weekly', 'monthly'] as const).map(f => (
             <button
               key={f}
               onClick={() => setTimeFilter(f)}
@@ -72,13 +84,12 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map(s => (
           <div key={s.label} className="bg-card rounded-2xl p-5 border border-border">
             <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center ${s.color} mb-3`}>{s.icon}</div>
             <div className="text-2xl font-black text-foreground">{s.value}</div>
             <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
-
           </div>
         ))}
       </div>
@@ -99,8 +110,8 @@ export default function AdminDashboard() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: any) => `₹${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: any) => [`₹${v.toLocaleString()}`, "Revenue"]} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: any) => v >= 1000 ? `₹${(v / 1000).toFixed(1)}k` : `₹${v}`} />
+              <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString("en-IN")}`, "Revenue"]} />
               <Area type="monotone" dataKey="revenue" stroke="#C8813A" strokeWidth={2} fill="url(#rev)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -123,7 +134,7 @@ export default function AdminDashboard() {
               <div key={d.name} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ background: d.color }} />
-                  <span className="text-muted-foreground capitalize">{d.name.toLowerCase()}</span>
+                  <span className="text-muted-foreground capitalize">{d.name?.toLowerCase() || "unknown"}</span>
                 </div>
                 <span className="font-semibold">{d.value}</span>
               </div>
@@ -135,7 +146,7 @@ export default function AdminDashboard() {
       {/* Recent Orders */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h3 className="font-bold">Recent Orders</h3>
+          <h3 className="font-bold">Recent Orders ({timeFilter})</h3>
           <button onClick={() => router.push("/admin/orders")} className="text-xs text-accent font-semibold hover:underline">View all →</button>
         </div>
         <div className="overflow-x-auto">
@@ -156,16 +167,16 @@ export default function AdminDashboard() {
                 </tr>
               ) : orders.slice(0, 5).map((o: any) => (
                 <tr key={o.id} className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-6 py-4 font-mono font-medium">{o.id}</td>
+                  <td className="px-6 py-4 font-mono font-medium">#{o.id}</td>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-foreground">{o.customer?.name}</div>
+                    <div className="font-medium text-foreground">{o.customer?.name || 'Walk-in Customer'}</div>
                   </td>
-                  <td className="px-6 py-4 font-medium">{fmtPrice(o.totalAmount || o.total)}</td>
+                  <td className="px-6 py-4 font-medium">{fmtPrice(o.totalAmount || o.total || 0)}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      o.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                      o.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                      o.status === 'PREPARING' ? 'bg-orange-100 text-orange-700' :
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider ${
+                      o.status === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                      o.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                      o.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
                       'bg-gray-100 text-gray-700'
                     }`}>
                       {o.status}
@@ -176,7 +187,7 @@ export default function AdminDashboard() {
               ))}
               {orders.length === 0 && !isOrdersLoading && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">No orders yet.</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">No orders in selected date range.</td>
                 </tr>
               )}
             </tbody>
@@ -186,3 +197,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
