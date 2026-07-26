@@ -123,7 +123,12 @@ public class OrderController {
     @GetMapping("/counts")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get total counts of orders grouped by status")
-    public ResponseEntity<ApiResponse<java.util.Map<String, Long>>> getOrderCounts() {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Order counts fetched successfully", orderService.getOrderCountsByStatus()));
+    public ResponseEntity<ApiResponse<java.util.Map<String, Long>>> getOrderCounts(
+            @RequestParam(required = false) String tableNumber,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        java.time.LocalDateTime start = (startDate != null && !startDate.isEmpty()) ? java.time.LocalDateTime.parse(startDate, java.time.format.DateTimeFormatter.ISO_DATE_TIME) : null;
+        java.time.LocalDateTime end = (endDate != null && !endDate.isEmpty()) ? java.time.LocalDateTime.parse(endDate, java.time.format.DateTimeFormatter.ISO_DATE_TIME) : null;
+        return ResponseEntity.ok(new ApiResponse<>(true, "Order counts fetched successfully", orderService.getOrderCountsByStatus(tableNumber, start, end)));
     }
 }

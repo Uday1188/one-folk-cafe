@@ -201,7 +201,12 @@ public class OrderServiceImpl implements OrderService {
     
     @Override
     public Map<String, Long> getOrderCountsByStatus() {
-        List<Object[]> results = orderRepository.countOrdersByStatus();
+        return getOrderCountsByStatus(null, null, null);
+    }
+
+    @Override
+    public Map<String, Long> getOrderCountsByStatus(String tableNumber, LocalDateTime startDate, LocalDateTime endDate) {
+        List<Object[]> results = orderRepository.countOrdersByStatusFiltered(tableNumber, startDate, endDate);
         Map<String, Long> counts = new HashMap<>();
         long total = 0;
         

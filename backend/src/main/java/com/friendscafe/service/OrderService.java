@@ -22,4 +22,5 @@ public interface OrderService {
     Page<OrderDto> searchOrders(OrderStatus status, String tableNumber, String search, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
     
     Map<String, Long> getOrderCountsByStatus();
+    Map<String, Long> getOrderCountsByStatus(String tableNumber, LocalDateTime startDate, LocalDateTime endDate);
 }

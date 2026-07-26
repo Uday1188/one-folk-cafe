@@ -20,6 +20,13 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     
     @Query("SELECT o.status, COUNT(o) FROM Order o GROUP BY o.status")
     List<Object[]> countOrdersByStatus();
+
+    @Query("SELECT o.status, COUNT(o) FROM Order o WHERE (:tableNumber IS NULL OR :tableNumber = '' OR :tableNumber = 'all' OR o.tableNumber = :tableNumber) AND (:startDate IS NULL OR o.createdAt >= :startDate) AND (:endDate IS NULL OR o.createdAt <= :endDate) GROUP BY o.status")
+    List<Object[]> countOrdersByStatusFiltered(
+        @Param("tableNumber") String tableNumber,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate
+    );
     
     @Query("SELECT o FROM Order o WHERE o.createdAt >= :startDate AND o.createdAt <= :endDate")
     Page<Order> findByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);

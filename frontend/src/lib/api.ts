@@ -64,8 +64,8 @@ export const fetchOrders = async (filters: OrderFilters = {}) => {
   return response.data.data.content || response.data.data;
 };
 
-export const fetchOrderCounts = async (): Promise<Record<string, number>> => {
-  const response = await api.get<ApiResponse<Record<string, number>>>('/orders/counts');
+export const fetchOrderCounts = async (params?: { tableNumber?: string; startDate?: string; endDate?: string }): Promise<Record<string, number>> => {
+  const response = await api.get<ApiResponse<Record<string, number>>>('/orders/counts', { params });
   return response.data.data;
 };
 

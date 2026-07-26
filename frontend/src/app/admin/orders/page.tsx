@@ -25,9 +25,6 @@ function AdminOrdersContent() {
   const [viewOrder, setViewOrder] = useState<any | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
-  const { data: tables = [] } = useQuery({ queryKey: ['tables'], queryFn: fetchTables });
-  const { data: counts = {} } = useQuery({ queryKey: ['orderCounts'], queryFn: fetchOrderCounts });
-
   const getDateFilter = () => {
     const now = new Date();
     if (timeRange === "today") {
@@ -56,6 +53,16 @@ function AdminOrdersContent() {
   };
 
   const { computedStart, computedEnd } = getDateFilter();
+
+  const { data: tables = [] } = useQuery({ queryKey: ['tables'], queryFn: fetchTables });
+  const { data: counts = {} } = useQuery({ 
+    queryKey: ['orderCounts', tableFilter, timeRange, startDate, endDate], 
+    queryFn: () => fetchOrderCounts({
+      tableNumber: tableFilter,
+      startDate: computedStart,
+      endDate: computedEnd
+    })
+  });
 
   const { data: orders = [], isLoading } = useQuery({ 
     queryKey: ['orders', filter, tableFilter, timeRange, startDate, endDate, page], 
@@ -115,8 +122,10 @@ function AdminOrdersContent() {
   
   const parseUTC = (str: string) => {
     if (!str) return new Date();
-    const cleanStr = str.endsWith('Z') || str.includes('+') || str.includes('-0') || (str.length > 10 && str.charAt(str.length - 6) === '-') || (str.length > 10 && str.charAt(str.length - 6) === '+') ? str : str + 'Z';
-    return new Date(cleanStr);
+    const hasTimezone = /[Zz]|\+\d{2}:?\d{2}|-\d{2}:?\d{2}$/.test(str);
+    const cleanStr = hasTimezone ? str : str + 'Z';
+    const parsed = new Date(cleanStr);
+    return isNaN(parsed.getTime()) ? new Date(str) : parsed;
   };
   const timeSince = (isoString: string): string => {
     const diff = Math.max(0, Date.now() - parseUTC(isoString).getTime());

@@ -36,8 +36,10 @@ export function NotificationPanel() {
 
   const parseUTC = (str: string) => {
     if (!str) return new Date();
-    const cleanStr = str.endsWith('Z') || str.includes('+') || str.includes('-0') || (str.length > 10 && str.charAt(str.length - 6) === '-') || (str.length > 10 && str.charAt(str.length - 6) === '+') ? str : str + 'Z';
-    return new Date(cleanStr);
+    const hasTimezone = /[Zz]|\+\d{2}:?\d{2}|-\d{2}:?\d{2}$/.test(str);
+    const cleanStr = hasTimezone ? str : str + 'Z';
+    const parsed = new Date(cleanStr);
+    return isNaN(parsed.getTime()) ? new Date(str) : parsed;
   };
 
   const timeSince = (dateString: string) => {

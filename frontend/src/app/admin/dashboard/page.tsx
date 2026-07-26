@@ -25,9 +25,17 @@ export default function AdminDashboard() {
   const isOrdersLoading = isMetricsLoading;
 
   const fmtPrice = (p: number) => `₹${p?.toLocaleString("en-IN") || 0}`;
+  const parseUTC = (str: string) => {
+    if (!str) return new Date();
+    const hasTimezone = /[Zz]|\+\d{2}:?\d{2}|-\d{2}:?\d{2}$/.test(str);
+    const cleanStr = hasTimezone ? str : str + 'Z';
+    const parsed = new Date(cleanStr);
+    return isNaN(parsed.getTime()) ? new Date(str) : parsed;
+  };
+
   const timeSince = (isoString: string): string => {
     if (!isoString) return "";
-    const diff = Date.now() - new Date(isoString).getTime();
+    const diff = Math.max(0, Date.now() - parseUTC(isoString).getTime());
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "just now";
     if (mins < 60) return `${mins}m ago`;
