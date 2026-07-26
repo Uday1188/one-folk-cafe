@@ -27,26 +27,39 @@ function AdminOrdersContent() {
 
   const getDateFilter = () => {
     const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
     if (timeRange === "today") {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      return { computedStart: start.toISOString(), computedEnd: end.toISOString() };
+      const year = now.getFullYear();
+      const month = pad(now.getMonth() + 1);
+      const day = pad(now.getDate());
+      return { 
+        computedStart: `${year}-${month}-${day}T00:00:00`,
+        computedEnd: `${year}-${month}-${day}T23:59:59`
+      };
     } else if (timeRange === "week") {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      return { computedStart: start.toISOString(), computedEnd: end.toISOString() };
+      const past = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      const startYear = past.getFullYear();
+      const startMonth = pad(past.getMonth() + 1);
+      const startDay = pad(past.getDate());
+      const endYear = now.getFullYear();
+      const endMonth = pad(now.getMonth() + 1);
+      const endDay = pad(now.getDate());
+      return {
+        computedStart: `${startYear}-${startMonth}-${startDay}T00:00:00`,
+        computedEnd: `${endYear}-${endMonth}-${endDay}T23:59:59`
+      };
     } else if (timeRange === "month") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-      return { computedStart: start.toISOString(), computedEnd: end.toISOString() };
+      const year = now.getFullYear();
+      const month = pad(now.getMonth() + 1);
+      const lastDay = pad(new Date(year, now.getMonth() + 1, 0).getDate());
+      return {
+        computedStart: `${year}-${month}-01T00:00:00`,
+        computedEnd: `${year}-${month}-${lastDay}T23:59:59`
+      };
     } else if (timeRange === "custom") {
       return {
-        computedStart: startDate ? new Date(startDate).toISOString() : undefined,
-        computedEnd: endDate ? (() => {
-          const d = new Date(endDate);
-          d.setHours(23, 59, 59, 999);
-          return d.toISOString();
-        })() : undefined
+        computedStart: startDate ? `${startDate}T00:00:00` : undefined,
+        computedEnd: endDate ? `${endDate}T23:59:59` : undefined
       };
     }
     return { computedStart: undefined, computedEnd: undefined };
@@ -157,25 +170,24 @@ function AdminOrdersContent() {
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-col md:flex-row gap-4 p-4 bg-card rounded-2xl border border-border shadow-sm">
-        {/* Status Tabs */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-1">
+      <div className="bg-card rounded-2xl border border-border p-4 space-y-3.5 shadow-sm">
+        {/* Row 1: Status Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
           {(["all", "pending", "completed", "cancelled"]).map(s => {
             const count = counts[s === 'all' ? 'ALL' : s.toUpperCase()] || 0;
             return (
               <button key={s} onClick={() => { setFilter(s); setPage(0); }}
-                className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${filter === s ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+                className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold capitalize transition-all ${filter === s ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
                 {s}
-                <span className="ml-1.5 text-xs opacity-80">({count})</span>
+                <span className="ml-1.5 opacity-80 font-mono">({count})</span>
               </button>
             );
           })}
         </div>
 
-        {/* Dynamic Filters & Time Range */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Time Range Filter Buttons */}
-          <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl border border-border">
+        {/* Row 2: Time Range & Table Selector */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-border/50">
+          <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl border border-border overflow-x-auto scrollbar-hide">
             {[
               { id: "today", label: "Today" },
               { id: "week", label: "Weekly" },
@@ -186,7 +198,7 @@ function AdminOrdersContent() {
               <button
                 key={t.id}
                 onClick={() => { setTimeRange(t.id); setPage(0); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   timeRange === t.id ? "bg-card text-foreground shadow-sm border border-border/80 text-accent" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -195,67 +207,72 @@ function AdminOrdersContent() {
             ))}
           </div>
 
-          <div className="relative">
-            <button 
-              onClick={() => setIsTableDropdownOpen(!isTableDropdownOpen)}
-              className="flex items-center gap-2 pl-3 pr-4 py-2 bg-secondary border border-border rounded-xl text-sm focus:ring-2 focus:ring-accent outline-none font-medium hover:bg-secondary/80 transition-colors min-w-[140px]"
-            >
-              <Hash className="w-4 h-4 text-muted-foreground" />
-              <span>{tableFilter === 'all' ? 'All Tables' : `Table ${tableFilter}`}</span>
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 sm:flex-none">
+              <button 
+                onClick={() => setIsTableDropdownOpen(!isTableDropdownOpen)}
+                className="w-full flex items-center justify-between gap-2 px-3.5 py-2 bg-secondary border border-border rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-accent outline-none font-semibold hover:bg-secondary/80 transition-colors min-w-[130px]"
+              >
+                <div className="flex items-center gap-1.5 truncate">
+                  <Hash className="w-4 h-4 text-muted-foreground" />
+                  <span>{tableFilter === 'all' ? 'All Tables' : `Table ${tableFilter}`}</span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
 
-            <AnimatePresence>
-              {isTableDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsTableDropdownOpen(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, y: 5, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-card rounded-2xl border border-border shadow-xl z-50 overflow-hidden py-2"
-                  >
-                    <div className="max-h-[250px] overflow-y-auto scrollbar-hide">
-                      <button
-                        onClick={() => { setTableFilter("all"); setIsTableDropdownOpen(false); }}
-                        className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/60 ${tableFilter === "all" ? "text-accent bg-accent/5" : "text-foreground"}`}
-                      >
-                        All Tables
-                      </button>
-                      {tables.map(t => (
+              <AnimatePresence>
+                {isTableDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsTableDropdownOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-2 w-48 bg-card rounded-2xl border border-border shadow-xl z-50 overflow-hidden py-2"
+                    >
+                      <div className="max-h-[250px] overflow-y-auto scrollbar-hide">
                         <button
-                          key={t.id}
-                          onClick={() => { setTableFilter(t.tableNumber); setIsTableDropdownOpen(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/60 ${tableFilter === t.tableNumber ? "text-accent bg-accent/5" : "text-foreground"}`}
+                          onClick={() => { setTableFilter("all"); setIsTableDropdownOpen(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/60 ${tableFilter === "all" ? "text-accent bg-accent/5" : "text-foreground"}`}
                         >
-                          Table {t.tableNumber}
+                          All Tables
                         </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
-          
-          {timeRange === "custom" && (
-            <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-1 border border-border focus-within:ring-2 focus-within:ring-accent transition-all animate-in fade-in zoom-in-95 duration-200">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent text-sm font-medium outline-none"
-              />
-              <span className="text-muted-foreground text-sm">-</span>
-              <input 
-                type="date" 
-                value={endDate} 
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent text-sm font-medium outline-none"
-              />
+                        {tables.map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => { setTableFilter(t.tableNumber); setIsTableDropdownOpen(false); }}
+                            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/60 ${tableFilter === t.tableNumber ? "text-accent bg-accent/5" : "text-foreground"}`}
+                          >
+                            Table {t.tableNumber}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
-          )}
+            
+            {timeRange === "custom" && (
+              <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-1 border border-border focus-within:ring-2 focus-within:ring-accent transition-all animate-in fade-in zoom-in-95 duration-200">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent text-xs sm:text-sm font-medium outline-none"
+                />
+                <span className="text-muted-foreground text-sm">-</span>
+                <input 
+                  type="date" 
+                  value={endDate} 
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent text-xs sm:text-sm font-medium outline-none"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -44,17 +44,19 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) String tableNumber,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         
+        LocalDateTime start = parseDateTime(startDate);
+        LocalDateTime end = parseDateTime(endDate);
         Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
         return ResponseEntity.ok(new ApiResponse<>(true, "Orders fetched successfully", 
-                orderService.searchOrders(status, tableNumber, search, startDate, endDate, pageable)));
+                orderService.searchOrders(status, tableNumber, search, start, end, pageable)));
     }
 
     @GetMapping("/{id}")
@@ -127,8 +129,27 @@ public class OrderController {
             @RequestParam(required = false) String tableNumber,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
-        java.time.LocalDateTime start = (startDate != null && !startDate.isEmpty()) ? java.time.LocalDateTime.parse(startDate, java.time.format.DateTimeFormatter.ISO_DATE_TIME) : null;
-        java.time.LocalDateTime end = (endDate != null && !endDate.isEmpty()) ? java.time.LocalDateTime.parse(endDate, java.time.format.DateTimeFormatter.ISO_DATE_TIME) : null;
+        LocalDateTime start = parseDateTime(startDate);
+        LocalDateTime end = parseDateTime(endDate);
         return ResponseEntity.ok(new ApiResponse<>(true, "Order counts fetched successfully", orderService.getOrderCountsByStatus(tableNumber, start, end)));
+    }
+
+    private LocalDateTime parseDateTime(String str) {
+        if (str == null || str.trim().isEmpty()) return null;
+        try {
+            if (str.endsWith("Z")) {
+                return java.time.Instant.parse(str).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
+            }
+            if (str.contains("+") || (str.length() > 10 && str.substring(10).contains("-"))) {
+                return java.time.OffsetDateTime.parse(str).toLocalDateTime();
+            }
+            return java.time.LocalDateTime.parse(str.replace(" ", "T"));
+        } catch (Exception e) {
+            try {
+                return java.time.LocalDateTime.parse(str.substring(0, 19));
+            } catch (Exception ex) {
+                return null;
+            }
+        }
     }
 }
