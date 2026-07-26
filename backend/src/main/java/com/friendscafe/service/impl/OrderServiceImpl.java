@@ -206,20 +206,22 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Map<String, Long> getOrderCountsByStatus(String tableNumber, LocalDateTime startDate, LocalDateTime endDate) {
-        List<Object[]> results = orderRepository.countOrdersByStatusFiltered(tableNumber, startDate, endDate);
-        Map<String, Long> counts = new HashMap<>();
-        long total = 0;
+        Specification<Order> spec = OrderSpecification.getOrdersByCriteria(null, tableNumber, null, startDate, endDate);
+        List<Order> orders = orderRepository.findAll(spec);
         
-        for (Object[] result : results) {
-            if (result[0] != null) {
-                String status = ((OrderStatus) result[0]).name();
-                Long count = (Long) result[1];
-                counts.put(status, count);
-                total += count;
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("ALL", (long) orders.size());
+        counts.put("PENDING", 0L);
+        counts.put("COMPLETED", 0L);
+        counts.put("CANCELLED", 0L);
+        
+        for (Order o : orders) {
+            if (o.getStatus() != null) {
+                String status = o.getStatus().name();
+                counts.put(status, counts.getOrDefault(status, 0L) + 1L);
             }
         }
         
-        counts.put("ALL", total);
         return counts;
     }
 }

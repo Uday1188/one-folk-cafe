@@ -186,32 +186,34 @@ function AdminOrdersContent() {
         </div>
 
         {/* Row 2: Time Range & Table Selector */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-border/50">
-          <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl border border-border overflow-x-auto scrollbar-hide">
-            {[
-              { id: "today", label: "Today" },
-              { id: "week", label: "Weekly" },
-              { id: "month", label: "Monthly" },
-              { id: "all", label: "All Time" },
-              { id: "custom", label: "Custom" },
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => { setTimeRange(t.id); setPage(0); }}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  timeRange === t.id ? "bg-card text-foreground shadow-sm border border-border/80 text-accent" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+        <div className="space-y-3 pt-3 border-t border-border/50">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            {/* Time Range Selector */}
+            <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl border border-border overflow-x-auto scrollbar-hide">
+              {[
+                { id: "today", label: "Today" },
+                { id: "week", label: "Weekly" },
+                { id: "month", label: "Monthly" },
+                { id: "all", label: "All Time" },
+                { id: "custom", label: "Custom" },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => { setTimeRange(t.id); setPage(0); }}
+                  className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center whitespace-nowrap ${
+                    timeRange === t.id ? "bg-card text-foreground shadow-sm border border-border/80 text-accent" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:flex-none">
+            {/* Table Dropdown */}
+            <div className="relative w-full sm:w-auto">
               <button 
                 onClick={() => setIsTableDropdownOpen(!isTableDropdownOpen)}
-                className="w-full flex items-center justify-between gap-2 px-3.5 py-2 bg-secondary border border-border rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-accent outline-none font-semibold hover:bg-secondary/80 transition-colors min-w-[130px]"
+                className="w-full flex items-center justify-between gap-2 px-3.5 py-2 bg-secondary border border-border rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-accent outline-none font-semibold hover:bg-secondary/80 transition-colors"
               >
                 <div className="flex items-center gap-1.5 truncate">
                   <Hash className="w-4 h-4 text-muted-foreground" />
@@ -229,7 +231,7 @@ function AdminOrdersContent() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 5, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-2 w-48 bg-card rounded-2xl border border-border shadow-xl z-50 overflow-hidden py-2"
+                      className="absolute top-full left-0 right-0 sm:right-auto sm:w-48 mt-2 bg-card rounded-2xl border border-border shadow-xl z-50 overflow-hidden py-2"
                     >
                       <div className="max-h-[250px] overflow-y-auto scrollbar-hide">
                         <button
@@ -253,26 +255,37 @@ function AdminOrdersContent() {
                 )}
               </AnimatePresence>
             </div>
-            
-            {timeRange === "custom" && (
-              <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-1 border border-border focus-within:ring-2 focus-within:ring-accent transition-all animate-in fade-in zoom-in-95 duration-200">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <input 
-                  type="date" 
-                  value={startDate} 
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-transparent text-xs sm:text-sm font-medium outline-none"
-                />
-                <span className="text-muted-foreground text-sm">-</span>
-                <input 
-                  type="date" 
-                  value={endDate} 
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-transparent text-xs sm:text-sm font-medium outline-none"
-                />
-              </div>
-            )}
           </div>
+          
+          {/* Custom Date Range Picker Container */}
+          {timeRange === "custom" && (
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-secondary/50 rounded-xl border border-border mt-2 animate-in fade-in zoom-in-95 duration-200">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">From Date</label>
+                <div className="flex items-center gap-2 bg-card px-3 py-2 rounded-lg border border-border">
+                  <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
+                    className="w-full bg-transparent text-xs font-semibold outline-none text-foreground"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">To Date</label>
+                <div className="flex items-center gap-2 bg-card px-3 py-2 rounded-lg border border-border">
+                  <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
+                    className="w-full bg-transparent text-xs font-semibold outline-none text-foreground"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
