@@ -479,7 +479,7 @@ export default function Home() {
             {[...CATEGORIES, ...CATEGORIES, ...CATEGORIES].map((cat, i) => (
               <button 
                 key={cat.name + i} 
-                onClick={() => router.push("/menu")}
+                onClick={() => router.push(`/menu?category=${encodeURIComponent(cat.name)}`)}
                 className="gpu-accelerated flex flex-col items-center gap-3 sm:gap-4 p-5 sm:p-6 rounded-3xl bg-white/5 hover:bg-white/15 active:bg-white/20 active:scale-95 active:border-accent backdrop-blur-md border border-white/10 hover:border-accent/50 group min-w-[155px] sm:min-w-[190px] flex-shrink-0 transition-all duration-300 hover:shadow-xl active:shadow-2xl active:shadow-accent/30 hover:shadow-accent/20 hover:-translate-y-1 active:-translate-y-0.5"
               >
                 <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-3xl bg-white/10 flex items-center justify-center text-4xl sm:text-5xl group-hover:bg-accent group-active:bg-accent group-hover:scale-110 group-active:scale-110 transition-all duration-300 shadow-md">
