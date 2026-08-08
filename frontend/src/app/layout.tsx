@@ -12,7 +12,15 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "One Folk Cafe | Order Online",
-  description: "Premium coffee shop and restaurant ordering system.",
+  description: "100% Pure Veg & Artisanal Coffee in Nashik",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon', type: 'image/png' }
+    ],
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
