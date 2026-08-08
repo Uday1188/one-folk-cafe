@@ -7,11 +7,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/health")
 public class HealthController {
 
-    @GetMapping
+    @GetMapping("/api/health")
     public ResponseEntity<ApiResponse<String>> healthCheck() {
         return ResponseEntity.ok(new ApiResponse<>(true, "Backend is active and warm", "UP"));
+    }
+
+    @GetMapping("/api/keep-alive")
+    public String keepAlive() {
+        return "OK";
     }
 }
