@@ -20,6 +20,15 @@ function MenuContent() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
+  const scrollToMenuSection = () => {
+    setTimeout(() => {
+      const el = document.getElementById('menu-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 150);
+  };
+
   useEffect(() => {
     if (categoryQuery) {
       const matched = CATEGORIES.find(
@@ -28,6 +37,7 @@ function MenuContent() {
              categoryQuery.toLowerCase().includes(c.name.toLowerCase())
       );
       setActiveCategory(matched ? matched.name : categoryQuery);
+      scrollToMenuSection();
     }
   }, [categoryQuery]);
 
@@ -81,6 +91,7 @@ function MenuContent() {
     } else {
       router.push(`/menu?category=${encodeURIComponent(categoryName)}`, { scroll: false });
     }
+    scrollToMenuSection();
   };
 
   return (
@@ -225,7 +236,7 @@ function MenuContent() {
       </div>
 
       {/* Products Grid */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 min-h-[60vh] flex-grow w-full">
+      <main id="menu-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 min-h-[60vh] flex-grow w-full scroll-mt-28">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-16 gap-3">
             <div className="w-10 h-10 border-3 border-accent border-t-transparent rounded-full animate-spin" />
