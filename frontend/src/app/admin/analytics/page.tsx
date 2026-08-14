@@ -38,18 +38,18 @@ export default function AdminAnalytics() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-muted/30">
-              {["Rank", "Product", "Orders", "Revenue", "Avg/Order"].map(h => (
+              {["Rank", "Product", "Orders", "Revenue"].map(h => (
                 <th key={h} className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-left">{h}</th>
               ))}
             </tr></thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">Loading...</td>
+                  <td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">Loading...</td>
                 </tr>
               ) : topProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">No data available for this time range.</td>
+                  <td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">No data available for this time range.</td>
                 </tr>
               ) : (
                 topProducts.map((d: any, i: number) => (
@@ -58,7 +58,6 @@ export default function AdminAnalytics() {
                     <td className="px-5 py-4 font-semibold">{d.product}</td>
                     <td className="px-5 py-4">{d.orders}</td>
                     <td className="px-5 py-4 font-bold text-primary">₹{d.revenue?.toLocaleString("en-IN") || 0}</td>
-                    <td className="px-5 py-4 text-muted-foreground">₹{Math.round((d.revenue || 0) / (d.orders || 1))}</td>
                   </tr>
                 ))
               )}

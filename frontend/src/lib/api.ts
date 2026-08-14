@@ -46,6 +46,7 @@ export interface OrderFilters {
   page?: number;
   size?: number;
   status?: string;
+  paymentStatus?: string;
   tableNumber?: string;
   startDate?: string;
   endDate?: string;
@@ -56,6 +57,7 @@ export const fetchOrders = async (filters: OrderFilters = {}) => {
   if (filters.page !== undefined) params.append('page', filters.page.toString());
   if (filters.size !== undefined) params.append('size', filters.size.toString());
   if (filters.status && filters.status !== 'all') params.append('status', filters.status.toUpperCase());
+  if (filters.paymentStatus && filters.paymentStatus !== 'all') params.append('paymentStatus', filters.paymentStatus.toUpperCase());
   if (filters.tableNumber && filters.tableNumber !== 'all') params.append('tableNumber', filters.tableNumber);
   if (filters.startDate) params.append('startDate', filters.startDate);
   if (filters.endDate) params.append('endDate', filters.endDate);
@@ -71,6 +73,11 @@ export const fetchOrderCounts = async (params?: { tableNumber?: string; startDat
 
 export const updateOrderStatus = async (id: number, status: string) => {
   const response = await api.patch(`/orders/${id}/status?status=${status}`);
+  return response.data.data;
+};
+
+export const updateOrderPaymentStatus = async (id: number, paymentStatus: string, paymentMethod?: string) => {
+  const response = await api.patch(`/orders/${id}/payment-status`, { paymentStatus, paymentMethod });
   return response.data.data;
 };
 

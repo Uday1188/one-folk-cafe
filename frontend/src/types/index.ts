@@ -2,7 +2,10 @@ export interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;
+  fullPlatePrice: number;
+  halfPlatePrice?: number;
+  halfPlateAvailable: boolean;
+  price: number; // backward compat (= fullPlatePrice)
   imageUrl?: string;
   categoryId: number;
   categoryName?: string;
@@ -34,6 +37,7 @@ export interface OrderItem {
   id?: number;
   productId: number;
   productName?: string;
+  servingType?: 'HALF' | 'FULL';
   quantity: number;
   price?: number;
 }
@@ -43,6 +47,9 @@ export interface Order {
   customer: Customer;
   tableNumber?: string;
   status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+  paymentStatus?: 'UNPAID' | 'PAID';
+  paymentMethod?: 'CASH' | 'UPI' | 'CARD' | 'OTHER';
+  paidAt?: string;
   totalAmount: number;
   items: OrderItem[];
   createdAt: string;
@@ -54,6 +61,7 @@ export interface OrderRequest {
   tableNumber?: string;
   items: {
     productId: number;
+    servingType?: 'HALF' | 'FULL';
     quantity: number;
   }[];
 }

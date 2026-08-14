@@ -4,6 +4,7 @@ import com.friendscafe.dto.ApiResponse;
 import com.friendscafe.dto.OrderDto;
 import com.friendscafe.dto.OrderRequest;
 import com.friendscafe.entity.OrderStatus;
+import com.friendscafe.entity.PaymentStatus;
 import com.friendscafe.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +43,7 @@ public class OrderController {
     @Operation(summary = "Get all orders with pagination and dynamic filtering")
     public ResponseEntity<ApiResponse<Page<OrderDto>>> getAllOrders(
             @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
             @RequestParam(required = false) String tableNumber,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String startDate,
@@ -56,7 +58,7 @@ public class OrderController {
         Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
         return ResponseEntity.ok(new ApiResponse<>(true, "Orders fetched successfully", 
-                orderService.searchOrders(status, tableNumber, search, start, end, pageable)));
+                orderService.searchOrders(status, paymentStatus, tableNumber, search, start, end, pageable)));
     }
 
     @GetMapping("/{id}")
@@ -71,6 +73,13 @@ public class OrderController {
     @Operation(summary = "Update order status")
     public ResponseEntity<ApiResponse<OrderDto>> updateOrderStatus(@PathVariable Long id, @RequestParam OrderStatus status) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Order status updated successfully", orderService.updateOrderStatus(id, status)));
+    }
+
+    @PatchMapping("/{id}/payment-status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update payment status")
+    public ResponseEntity<ApiResponse<OrderDto>> updatePaymentStatus(@PathVariable Long id, @Valid @RequestBody com.friendscafe.dto.PaymentStatusUpdateRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Payment status updated successfully", orderService.updatePaymentStatus(id, request.getPaymentStatus(), request.getPaymentMethod())));
     }
 
     @PutMapping("/{id}")

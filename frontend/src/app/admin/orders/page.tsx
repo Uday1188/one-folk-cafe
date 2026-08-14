@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, X as XIcon, Calendar, Hash, ChevronDown, Check, Clock } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchOrders, updateOrderStatus, fetchTables, fetchOrderCounts, fetchOrderById } from '@/lib/api';
+import { fetchOrders, updateOrderStatus, updateOrderPaymentStatus, fetchTables, fetchOrderCounts, fetchOrderById } from '@/lib/api';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ function AdminOrdersContent() {
   const viewId = searchParams.get('viewOrder');
 
   const [filter, setFilter] = useState<string>("all");
+  const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [tableFilter, setTableFilter] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<string>("today");
   const [isTableDropdownOpen, setIsTableDropdownOpen] = useState(false);
@@ -78,11 +79,12 @@ function AdminOrdersContent() {
   });
 
   const { data: orders = [], isLoading } = useQuery({ 
-    queryKey: ['orders', filter, tableFilter, timeRange, startDate, endDate, page], 
+    queryKey: ['orders', filter, paymentFilter, tableFilter, timeRange, startDate, endDate, page], 
     queryFn: () => fetchOrders({
       page: page,
       size: 10,
       status: filter,
+      paymentStatus: paymentFilter,
       tableNumber: tableFilter,
       startDate: computedStart,
       endDate: computedEnd
@@ -128,6 +130,25 @@ function AdminOrdersContent() {
     updateStatusMutation.mutate({ id, status });
     if (viewOrder && viewOrder.id === id) {
       setViewOrder({ ...viewOrder, status });
+    }
+  };
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: ({ id, status, method }: { id: number; status: string, method?: string }) => updateOrderPaymentStatus(id, status, method),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['orderCounts'] });
+      toast.success('Payment status updated!');
+    },
+    onError: () => {
+      toast.error('Failed to update payment status');
+    }
+  });
+
+  const handleUpdatePaymentStatus = (id: number, status: string, method?: string) => {
+    updatePaymentMutation.mutate({ id, status, method });
+    if (viewOrder && viewOrder.id === id) {
+      setViewOrder({ ...viewOrder, paymentStatus: status, paymentMethod: method });
     }
   };
 
@@ -180,6 +201,18 @@ function AdminOrdersContent() {
                 className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold capitalize transition-all ${filter === s ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
                 {s}
                 <span className="ml-1.5 opacity-80 font-mono">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Row 1.5: Payment Status Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {(["all", "paid", "unpaid"]).map(s => {
+            return (
+              <button key={`pay-${s}`} onClick={() => { setPaymentFilter(s); setPage(0); }}
+                className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold capitalize transition-all ${paymentFilter === s ? "bg-accent text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+                {s}
               </button>
             );
           })}
@@ -294,7 +327,7 @@ function AdminOrdersContent() {
         <div className="overflow-x-auto rounded-t-2xl pb-24 -mb-24">
           <table className="w-full text-sm min-w-[700px]">
             <thead><tr className="bg-secondary/50 text-left">
-              {["Order ID", "Table", "Items", "Total", "Status", "Date & Time", "Actions"].map(h => (
+              {["Order ID", "Table", "Items", "Total", "Order Status", "Payment Status", "Date & Time", "Actions"].map(h => (
                 <th key={h} className="px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
               ))}
             </tr></thead>
@@ -307,7 +340,8 @@ function AdminOrdersContent() {
                   <td className="px-5 py-4 font-bold text-accent">{o.tableNumber || 'Walk-in'}</td>
                   <td className="px-5 py-4 text-muted-foreground">{o.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0} items</td>
                   <td className="px-5 py-4 font-bold text-primary">{fmtPrice(o.totalAmount || o.total)}</td>
-                  <td className="px-5 py-4"><StatusBadge status={o.status} /></td>
+                  <td className="px-5 py-4"><StatusBadge status={o.status} type="order" /></td>
+                  <td className="px-5 py-4"><StatusBadge status={o.paymentStatus || 'UNPAID'} type="payment" /></td>
                   <td className="px-5 py-4">
                     <div className="text-sm font-semibold">{fmtDate(o.createdAt)}</div>
                     <div className="text-xs text-muted-foreground">{timeSince(o.createdAt)}</div>
@@ -409,7 +443,10 @@ function AdminOrdersContent() {
                     <div className="font-semibold text-lg">{viewOrder.customer?.name || 'Walk-in Customer'}</div>
                     <div className="text-sm font-bold text-accent mt-0.5">{viewOrder.tableNumber && viewOrder.tableNumber !== 'Walk-in' ? `Table: ${viewOrder.tableNumber}` : 'Walk-in / Takeaway'}</div>
                   </div>
-                  <StatusBadge status={viewOrder.status} />
+                  <div className="flex flex-col gap-2 items-end">
+                    <StatusBadge status={viewOrder.status} type="order" />
+                    <StatusBadge status={viewOrder.paymentStatus || 'UNPAID'} type="payment" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-secondary/50 rounded-xl p-3 border border-border/50">
@@ -426,7 +463,11 @@ function AdminOrdersContent() {
                   <div className="space-y-3 bg-secondary/20 p-4 rounded-xl border border-border/50">
                     {viewOrder.items?.map((item: any) => (
                       <div key={item.id} className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{item.productName || item.product?.name} <span className="text-muted-foreground text-xs ml-1">×{item.quantity}</span></span>
+                        <span className="font-medium flex items-center">
+                          {item.productName || item.product?.name} 
+                          {item.servingType && <span className="px-1.5 py-0.5 mx-1.5 rounded text-[9px] font-bold uppercase tracking-wider bg-secondary border border-border/50 text-muted-foreground">{item.servingType}</span>}
+                          <span className="text-muted-foreground text-xs ml-0.5">×{item.quantity}</span>
+                        </span>
                         <span className="font-semibold">{fmtPrice((item.price || item.product?.price || 0) * item.quantity)}</span>
                       </div>
                     ))}
@@ -437,7 +478,7 @@ function AdminOrdersContent() {
                   </div>
                 </div>
                 <div>
-                  <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Update Status</h5>
+                  <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 border-t border-border pt-4">Update Order Status</h5>
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     {(["pending", "completed", "cancelled"]).map(s => (
                       <button key={s} onClick={() => handleUpdateStatus(viewOrder.id, s.toUpperCase())}
@@ -445,6 +486,18 @@ function AdminOrdersContent() {
                         {s}
                       </button>
                     ))}
+                  </div>
+
+                  <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 border-t border-border pt-4">Update Payment</h5>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <button onClick={() => handleUpdatePaymentStatus(viewOrder.id, 'UNPAID')}
+                      className={`py-2.5 rounded-xl text-xs font-semibold transition-all border ${(viewOrder.paymentStatus || 'UNPAID') === 'UNPAID' ? "bg-red-500 text-white border-red-500 shadow-md" : "bg-secondary/50 hover:bg-secondary border-border"}`}>
+                      Unpaid
+                    </button>
+                    <button onClick={() => handleUpdatePaymentStatus(viewOrder.id, 'PAID', 'CASH')}
+                      className={`py-2.5 rounded-xl text-xs font-semibold transition-all border ${(viewOrder.paymentStatus || 'UNPAID') === 'PAID' ? "bg-emerald-500 text-white border-emerald-500 shadow-md" : "bg-secondary/50 hover:bg-secondary border-border"}`}>
+                      Mark as Paid
+                    </button>
                   </div>
                   
                   <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 border-t border-border pt-4">Modify Order</h5>

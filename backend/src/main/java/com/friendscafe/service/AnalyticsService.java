@@ -56,10 +56,14 @@ public class AnalyticsService implements IAnalyticsService {
         LocalDateTime startDate = dateRange[0];
         LocalDateTime endDate = dateRange[1];
         
-        Double totalSales = orderRepository.sumRevenueInDateRange(startDate, endDate);
-        double revenue = totalSales != null ? totalSales : 0.0;
-        metrics.put("todaysSales", revenue);
-        metrics.put("totalSales", revenue);
+        Double totalOrderValue = orderRepository.sumTotalOrderValueInDateRange(startDate, endDate);
+        Double paidRevenue = orderRepository.sumPaidRevenueInDateRange(startDate, endDate);
+        Double unpaidAmount = orderRepository.sumUnpaidAmountInDateRange(startDate, endDate);
+        
+        metrics.put("totalOrderValue", totalOrderValue != null ? totalOrderValue : 0.0);
+        metrics.put("todaysSales", paidRevenue != null ? paidRevenue : 0.0); // Paid revenue as sales
+        metrics.put("totalSales", paidRevenue != null ? paidRevenue : 0.0);
+        metrics.put("unpaidAmount", unpaidAmount != null ? unpaidAmount : 0.0);
         
         long totalOrdersCount = orderRepository.countOrdersInDateRange(startDate, endDate);
         metrics.put("todaysOrders", totalOrdersCount);
@@ -136,9 +140,13 @@ public class AnalyticsService implements IAnalyticsService {
         
         return results.stream().map(result -> {
             Map<String, Object> stat = new HashMap<>();
-            stat.put("product", result[0]);
-            stat.put("orders", result[1]);
-            stat.put("revenue", result[2]);
+            String name = (String) result[0];
+            if (result[1] != null && result[1].toString().equalsIgnoreCase("HALF")) {
+                name += " (Half)";
+            }
+            stat.put("product", name);
+            stat.put("orders", result[2]);
+            stat.put("revenue", result[3]);
             return stat;
         }).collect(Collectors.toList());
     }

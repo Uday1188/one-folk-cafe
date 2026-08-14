@@ -10,7 +10,7 @@ export default function AdminProducts() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", category: "Coffee", price: "", image: "", available: true });
+  const [form, setForm] = useState({ name: "", description: "", category: "Coffee", fullPlatePrice: "", halfPlatePrice: "", halfPlateAvailable: false, image: "", available: true });
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [productToDelete, setProductToDelete] = useState<any>(null);
@@ -66,13 +66,13 @@ export default function AdminProducts() {
 
   const openAdd = () => {
     setEditingId(null);
-    setForm({ name: "", description: "", category: categories.length > 0 ? categories[0].name : "Coffee", price: "", image: "", available: true });
+    setForm({ name: "", description: "", category: categories.length > 0 ? categories[0].name : "Coffee", fullPlatePrice: "", halfPlatePrice: "", halfPlateAvailable: false, image: "", available: true });
     setShowModal(true);
   };
 
   const openEdit = (p: any) => {
     setEditingId(p.id);
-    setForm({ name: p.name, description: p.description || "", category: p.categoryName || "Coffee", price: String(p.price), image: p.imageUrl || "", available: p.available });
+    setForm({ name: p.name, description: p.description || "", category: p.categoryName || "Coffee", fullPlatePrice: String(p.fullPlatePrice || p.price), halfPlatePrice: p.halfPlatePrice ? String(p.halfPlatePrice) : "", halfPlateAvailable: p.halfPlateAvailable || false, image: p.imageUrl || "", available: p.available });
     setShowModal(true);
     setCatDropdownOpen(false);
     setIsAddingCategory(false);
@@ -97,7 +97,7 @@ export default function AdminProducts() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.price) { toast.error("Name and price are required"); return; }
+    if (!form.name || !form.fullPlatePrice) { toast.error("Name and full plate price are required"); return; }
     
     // Find category ID
     const cat = categories.find((c: any) => c.name === form.category);
@@ -107,7 +107,9 @@ export default function AdminProducts() {
       name: form.name, 
       description: form.description, 
       categoryId: cat.id, 
-      price: parseFloat(form.price), 
+      fullPlatePrice: parseFloat(form.fullPlatePrice), 
+      halfPlatePrice: form.halfPlateAvailable && form.halfPlatePrice ? parseFloat(form.halfPlatePrice) : null,
+      halfPlateAvailable: form.halfPlateAvailable,
       imageUrl: form.image || null, 
       available: form.available 
     };
@@ -264,7 +266,12 @@ export default function AdminProducts() {
                     </div>
                   </td>
                   <td className="px-5 py-4"><span className="px-2.5 py-1 rounded-lg bg-secondary text-xs font-medium border border-border/50">{p.categoryName}</span></td>
-                  <td className="px-5 py-4 font-bold text-primary">{fmtPrice(p.price)}</td>
+                  <td className="px-5 py-4 font-bold text-primary">
+                    <div className="flex flex-col">
+                      <span>{fmtPrice(p.fullPlatePrice || p.price)}</span>
+                      {p.halfPlateAvailable && <span className="text-xs text-muted-foreground font-normal">Half: {fmtPrice(p.halfPlatePrice)}</span>}
+                    </div>
+                  </td>
                   <td className="px-5 py-4">
                     <button onClick={() => handleToggleAvailable(p)}
                       className={`px-3 py-1 rounded-full text-xs font-bold transition-colors shadow-sm ${p.available ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800" : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700"}`}>
@@ -415,10 +422,26 @@ export default function AdminProducts() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Price (₹) *</label>
-                    <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="299" min="1"
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Full Plate Price (₹) *</label>
+                    <input type="number" value={form.fullPlatePrice} onChange={e => setForm({ ...form, fullPlatePrice: e.target.value })} placeholder="299" min="1"
                       className="w-full px-4 py-2.5 rounded-xl bg-input-background border border-border focus:outline-none focus:ring-2 focus:ring-accent/30 text-sm" />
                   </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-secondary/50 transition-colors flex-1">
+                    <div onClick={() => setForm({ ...form, halfPlateAvailable: !form.halfPlateAvailable })}
+                      className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 ${form.halfPlateAvailable ? "bg-accent" : "bg-border"}`}>
+                      <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${form.halfPlateAvailable ? "translate-x-5" : "translate-x-0"}`} />
+                    </div>
+                    <span className="text-sm font-medium">Enable Half Plate</span>
+                  </label>
+                  {form.halfPlateAvailable && (
+                    <div className="flex-1">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Half Plate Price (₹) *</label>
+                      <input type="number" value={form.halfPlatePrice} onChange={e => setForm({ ...form, halfPlatePrice: e.target.value })} placeholder="199" min="1"
+                        className="w-full px-4 py-2.5 rounded-xl bg-input-background border border-border focus:outline-none focus:ring-2 focus:ring-accent/30 text-sm" />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Product Image (URL or Upload)</label>

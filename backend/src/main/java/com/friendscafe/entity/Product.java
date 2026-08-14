@@ -29,8 +29,15 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
+    @Column(name = "full_plate_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal fullPlatePrice;
+
+    @Column(name = "half_plate_price", precision = 10, scale = 2)
+    private BigDecimal halfPlatePrice;
+
+    @Column(name = "half_plate_available", nullable = false)
+    @Builder.Default
+    private Boolean halfPlateAvailable = false;
 
     @Column(name = "image_url")
     private String imageUrl;

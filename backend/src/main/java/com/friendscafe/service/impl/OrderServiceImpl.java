@@ -71,6 +71,7 @@ public class OrderServiceImpl implements OrderService {
                 .customer(customer)
                 .tableNumber(tableNum)
                 .status(OrderStatus.PENDING)
+                .paymentStatus(PaymentStatus.UNPAID)
                 .totalAmount(BigDecimal.ZERO)
                 .build();
 
@@ -80,15 +81,29 @@ public class OrderServiceImpl implements OrderService {
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemRequest.getProductId()));
             
+            ServingType type = ServingType.FULL;
+            if ("HALF".equalsIgnoreCase(itemRequest.getServingType())) {
+                if (!Boolean.TRUE.equals(product.getHalfPlateAvailable())) {
+                    throw new IllegalArgumentException("Half plate is not available for product: " + product.getName());
+                }
+                type = ServingType.HALF;
+            }
+
+            BigDecimal itemPrice = type == ServingType.HALF ? product.getHalfPlatePrice() : product.getFullPlatePrice();
+            if (itemPrice == null) {
+                itemPrice = product.getFullPlatePrice(); // Fallback
+            }
+
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
+                    .servingType(type)
                     .quantity(itemRequest.getQuantity())
-                    .price(product.getPrice())
+                    .price(itemPrice)
                     .build();
             
             order.addItem(orderItem);
             
-            BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+            BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
             total = total.add(itemTotal);
         }
 
@@ -135,6 +150,27 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    public OrderDto updatePaymentStatus(Long id, PaymentStatus status, PaymentMethod method) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        
+        if (order.getPaymentStatus() != PaymentStatus.PAID && status == PaymentStatus.PAID) {
+            order.setPaidAt(LocalDateTime.now());
+        } else if (order.getPaymentStatus() == PaymentStatus.PAID && status == PaymentStatus.UNPAID) {
+            order.setPaidAt(null);
+        }
+        
+        order.setPaymentStatus(status);
+        if (method != null) {
+            order.setPaymentMethod(method);
+        }
+        
+        Order updatedOrder = orderRepository.save(order);
+        return orderMapper.toDto(updatedOrder);
+    }
+
+    @Override
+    @Transactional
     public OrderDto updateOrder(Long id, OrderRequest orderRequest) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
@@ -152,15 +188,29 @@ public class OrderServiceImpl implements OrderService {
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemRequest.getProductId()));
             
+            ServingType type = ServingType.FULL;
+            if ("HALF".equalsIgnoreCase(itemRequest.getServingType())) {
+                if (!Boolean.TRUE.equals(product.getHalfPlateAvailable())) {
+                    throw new IllegalArgumentException("Half plate is not available for product: " + product.getName());
+                }
+                type = ServingType.HALF;
+            }
+
+            BigDecimal itemPrice = type == ServingType.HALF ? product.getHalfPlatePrice() : product.getFullPlatePrice();
+            if (itemPrice == null) {
+                itemPrice = product.getFullPlatePrice(); // Fallback
+            }
+
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
+                    .servingType(type)
                     .quantity(itemRequest.getQuantity())
-                    .price(product.getPrice())
+                    .price(itemPrice)
                     .build();
             
             order.addItem(orderItem);
             
-            BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+            BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
             total = total.add(itemTotal);
         }
 
@@ -193,8 +243,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Page<OrderDto> searchOrders(OrderStatus status, String tableNumber, String search, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        Specification<Order> spec = OrderSpecification.getOrdersByCriteria(status, tableNumber, search, startDate, endDate);
+    public Page<OrderDto> searchOrders(OrderStatus status, PaymentStatus paymentStatus, String tableNumber, String search, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        Specification<Order> spec = OrderSpecification.getOrdersByCriteria(status, paymentStatus, tableNumber, search, startDate, endDate);
         Page<Order> orderPage = orderRepository.findAll(spec, pageable);
         return orderPage.map(orderMapper::toDto);
     }
@@ -206,7 +256,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Map<String, Long> getOrderCountsByStatus(String tableNumber, LocalDateTime startDate, LocalDateTime endDate) {
-        Specification<Order> spec = OrderSpecification.getOrdersByCriteria(null, tableNumber, null, startDate, endDate);
+        Specification<Order> spec = OrderSpecification.getOrdersByCriteria(null, null, tableNumber, null, startDate, endDate);
         List<Order> orders = orderRepository.findAll(spec);
         
         Map<String, Long> counts = new HashMap<>();

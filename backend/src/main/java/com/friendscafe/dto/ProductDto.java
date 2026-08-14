@@ -17,9 +17,13 @@ public class ProductDto {
 
     private String description;
 
-    @NotNull(message = "Price is required")
-    @Positive(message = "Price must be greater than 0")
-    private BigDecimal price;
+    @NotNull(message = "Full plate price is required")
+    @Positive(message = "Full plate price must be greater than 0")
+    private BigDecimal fullPlatePrice;
+
+    private BigDecimal halfPlatePrice;
+
+    private Boolean halfPlateAvailable;
 
     private String imageUrl;
 
@@ -32,4 +36,8 @@ public class ProductDto {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public BigDecimal getPrice() {
+        return fullPlatePrice;
+    }
 }

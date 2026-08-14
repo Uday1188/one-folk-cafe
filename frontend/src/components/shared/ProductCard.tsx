@@ -113,13 +113,28 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0 relative z-10">
         <div className="flex items-center justify-between border-t border-border/60 dark:border-white/10 pt-3.5 sm:pt-4">
           <div>
-            <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider block leading-none mb-1">Price</span>
-            <span className="text-xl sm:text-2xl font-black text-primary dark:text-white tracking-tight">{fmtPrice(product.price)}</span>
+            <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider block leading-none mb-1">
+              {product.halfPlateAvailable ? "Price Range" : "Price"}
+            </span>
+            {product.halfPlateAvailable ? (
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-0.5">
+                <div className="flex items-baseline gap-1 bg-secondary/80 dark:bg-black/20 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-border/50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                  <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-extrabold text-muted-foreground">Half</span>
+                  <span className="text-sm sm:text-base font-black text-primary dark:text-accent tracking-tight">{fmtPrice(product.halfPlatePrice || 0)}</span>
+                </div>
+                <div className="flex items-baseline gap-1 bg-secondary/80 dark:bg-black/20 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-border/50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                  <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-extrabold text-muted-foreground">Full</span>
+                  <span className="text-sm sm:text-base font-black text-primary dark:text-white tracking-tight">{fmtPrice(product.fullPlatePrice || product.price)}</span>
+                </div>
+              </div>
+            ) : (
+              <span className="text-xl sm:text-2xl font-black text-primary dark:text-white tracking-tight">{fmtPrice(product.fullPlatePrice || product.price)}</span>
+            )}
           </div>
           
-          <div className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2.5 sm:py-2.5 rounded-2xl bg-secondary group-hover:bg-accent group-active:bg-accent group-hover:text-white group-active:text-white text-xs sm:text-xs font-extrabold text-foreground transition-all duration-300 shadow-sm group-hover:shadow-md group-active:shadow-lg group-hover:shadow-accent/40 group-active:shadow-accent/50 active:scale-95">
-            <span>Explore Item</span>
-            <ArrowUpRight className="w-4 h-4 text-accent group-hover:text-white group-active:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-active:translate-x-1 group-active:-translate-y-1 transition-transform duration-300" />
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-secondary group-hover:bg-accent group-active:bg-accent group-hover:text-white group-active:text-white text-[11px] sm:text-xs font-extrabold text-foreground transition-all duration-300 shadow-sm group-hover:shadow-md group-active:shadow-lg group-hover:shadow-accent/40 group-active:shadow-accent/50 active:scale-95">
+            <span className="whitespace-nowrap">Explore</span>
+            <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent group-hover:text-white group-active:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-active:translate-x-1 group-active:-translate-y-1 transition-transform duration-300" />
           </div>
         </div>
       </div>

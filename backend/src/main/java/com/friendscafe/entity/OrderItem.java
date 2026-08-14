@@ -26,6 +26,11 @@ public class OrderItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "serving_type", nullable = false, length = 10)
+    @Builder.Default
+    private ServingType servingType = ServingType.FULL;
+
     @Column(nullable = false)
     private Integer quantity;
 

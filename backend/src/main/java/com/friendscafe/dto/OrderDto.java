@@ -1,6 +1,8 @@
 package com.friendscafe.dto;
 
 import com.friendscafe.entity.OrderStatus;
+import com.friendscafe.entity.PaymentMethod;
+import com.friendscafe.entity.PaymentStatus;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -16,4 +18,7 @@ public class OrderDto {
     private BigDecimal totalAmount;
     private List<OrderItemDto> items;
     private LocalDateTime createdAt;
+    private PaymentStatus paymentStatus;
+    private PaymentMethod paymentMethod;
+    private LocalDateTime paidAt;
 }

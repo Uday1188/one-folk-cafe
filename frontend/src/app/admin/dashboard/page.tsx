@@ -44,11 +44,25 @@ export default function AdminDashboard() {
 
   const stats = [
     { 
-      label: timeFilter === 'today' ? "Today's Revenue" : timeFilter === 'weekly' ? "Weekly Revenue" : "Monthly Revenue", 
-      value: fmtPrice(metrics?.totalSales ?? metrics?.todaysSales ?? 0), 
+      label: timeFilter === 'today' ? "Today's Paid Revenue" : timeFilter === 'weekly' ? "Weekly Paid Revenue" : "Monthly Paid Revenue", 
+      value: fmtPrice(metrics?.todaysSales ?? 0), 
       icon: <DollarSign className="w-5 h-5" />, 
       color: "text-green-600", 
       bg: "bg-green-50 dark:bg-green-900/20" 
+    },
+    { 
+      label: "Unpaid Amount", 
+      value: fmtPrice(metrics?.unpaidAmount ?? 0), 
+      icon: <DollarSign className="w-5 h-5" />, 
+      color: "text-red-600", 
+      bg: "bg-red-50 dark:bg-red-900/20" 
+    },
+    { 
+      label: "Total Order Value", 
+      value: fmtPrice(metrics?.totalOrderValue ?? 0), 
+      icon: <DollarSign className="w-5 h-5" />, 
+      color: "text-blue-600", 
+      bg: "bg-blue-50 dark:bg-blue-900/20" 
     },
     { 
       label: timeFilter === 'today' ? "Today's Orders" : timeFilter === 'weekly' ? "Weekly Orders" : "Monthly Orders", 
@@ -106,8 +120,8 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Chart */}
         <div className="lg:col-span-2 bg-card rounded-2xl p-6 border border-border">
-          <h3 className="font-bold mb-1 capitalize">{timeFilter} Revenue</h3>
-          <p className="text-xs text-muted-foreground mb-5">Revenue trend based on completed orders</p>
+          <h3 className="font-bold mb-1 capitalize">{timeFilter} Paid Revenue</h3>
+          <p className="text-xs text-muted-foreground mb-5">Revenue trend based on paid orders</p>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={revenueData}>
               <defs>

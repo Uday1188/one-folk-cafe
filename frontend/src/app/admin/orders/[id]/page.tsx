@@ -17,7 +17,8 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
   const isNew = id === 'new';
 
   const [tableNumber, setTableNumber] = useState('');
-  const [items, setItems] = useState<{ product: Product; quantity: number }[]>([]);
+  const [items, setItems] = useState<{ product: Product; servingType: 'HALF' | 'FULL'; quantity: number }[]>([]);
+  const [selectedProductForServing, setSelectedProductForServing] = useState<Product | null>(null);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isMobileTicketOpen, setIsMobileTicketOpen] = useState(false);
@@ -47,6 +48,7 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
         const product = products.find(p => p.id === item.productId);
         return {
           product: product || { id: item.productId, name: item.productName, price: item.price } as any,
+          servingType: item.servingType || 'FULL',
           quantity: item.quantity,
         };
       });
@@ -76,27 +78,36 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
 
     saveMutation.mutate({
       tableNumber: tableNumber.trim() || "Walk-in",
-      items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
+      items: items.map(i => ({ productId: i.product.id, servingType: i.servingType, quantity: i.quantity })),
     });
   };
 
   const addItem = (product: Product) => {
-    setItems(prev => {
-      const existing = prev.find(i => i.product.id === product.id);
-      if (existing) {
-        return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
-      }
-      return [...prev, { product, quantity: 1 }];
-    });
-    toast.success(`Added ${product.name}`, { duration: 1500 });
+    if (product.halfPlateAvailable) {
+      setSelectedProductForServing(product);
+    } else {
+      addItemWithServing(product, 'FULL');
+    }
   };
 
-  const updateQuantity = (productId: number, qty: number) => {
+  const addItemWithServing = (product: Product, servingType: 'HALF' | 'FULL') => {
+    setItems(prev => {
+      const existing = prev.find(i => i.product.id === product.id && i.servingType === servingType);
+      if (existing) {
+        return prev.map(i => i.product.id === product.id && i.servingType === servingType ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...prev, { product, servingType, quantity: 1 }];
+    });
+    toast.success(`Added ${product.name}`, { duration: 1500 });
+    setSelectedProductForServing(null);
+  };
+
+  const updateQuantity = (productId: number, servingType: 'HALF' | 'FULL', qty: number) => {
     if (qty <= 0) {
-      setItems(prev => prev.filter(i => i.product.id !== productId));
+      setItems(prev => prev.filter(i => !(i.product.id === productId && i.servingType === servingType)));
       return;
     }
-    setItems(prev => prev.map(i => i.product.id === productId ? { ...i, quantity: qty } : i));
+    setItems(prev => prev.map(i => (i.product.id === productId && i.servingType === servingType) ? { ...i, quantity: qty } : i));
   };
 
   const filteredProducts = products.filter(p => {
@@ -108,7 +119,10 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
   });
 
   const totalItemCount = items.reduce((s, i) => s + i.quantity, 0);
-  const subtotal = items.reduce((s, i) => s + (i.product.price * i.quantity), 0);
+  const subtotal = items.reduce((s, i) => {
+    const pPrice = i.servingType === 'HALF' ? i.product.halfPlatePrice : (i.product.fullPlatePrice || i.product.price);
+    return s + ((pPrice || 0) * i.quantity);
+  }, 0);
   const fmtPrice = (p: number) => `₹${p.toLocaleString("en-IN")}`;
 
   if (!isNew && isLoadingOrder) return <div className="p-8 text-center">Loading order...</div>;
@@ -187,7 +201,10 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
                     <h4 className="font-semibold text-xs leading-tight line-clamp-2 mb-1">{p.name}</h4>
                   </div>
                   <div className="flex items-center justify-between mt-2 pt-1 border-t border-border/40">
-                    <p className="text-accent font-extrabold text-sm">{fmtPrice(p.price)}</p>
+                    <div className="flex flex-col">
+                      <p className="text-accent font-extrabold text-sm">{fmtPrice(p.fullPlatePrice || p.price)}</p>
+                      {p.halfPlateAvailable && <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Half: {fmtPrice(p.halfPlatePrice || 0)}</p>}
+                    </div>
                     <span className="w-6 h-6 rounded-lg bg-accent/10 text-accent flex items-center justify-center font-bold text-xs group-hover:bg-accent group-hover:text-white transition-colors">
                       +
                     </span>
@@ -233,26 +250,31 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
                 <div className="text-center py-10 text-muted-foreground text-sm border-2 border-dashed border-border/60 rounded-2xl">
                   No items added yet.<br />Tap any item on the left to add.
                 </div>
-              ) : items.map(item => (
-                <div key={item.product.id} className="flex items-center justify-between gap-3 bg-secondary/30 p-3 rounded-2xl border border-border/50">
+              ) : items.map(item => {
+                const itemPrice = (item.servingType === 'HALF' ? item.product.halfPlatePrice : (item.product.fullPlatePrice || item.product.price)) || 0;
+                return (
+                <div key={`${item.product.id}-${item.servingType}`} className="flex items-center justify-between gap-3 bg-secondary/30 p-3 rounded-2xl border border-border/50">
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-xs leading-tight truncate">{item.product.name}</h4>
-                    <div className="text-xs text-accent font-bold mt-0.5">{fmtPrice(item.product.price * item.quantity)}</div>
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="font-semibold text-xs leading-tight truncate">{item.product.name}</h4>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-secondary border border-border text-muted-foreground">{item.servingType}</span>
+                    </div>
+                    <div className="text-xs text-accent font-bold mt-0.5">{fmtPrice(itemPrice * item.quantity)}</div>
                   </div>
                   <div className="flex items-center gap-2 bg-secondary border border-border rounded-xl p-1">
-                    <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-card">
+                    <button onClick={() => updateQuantity(item.product.id, item.servingType, item.quantity - 1)} className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-card">
                       <Minus className="w-3 h-3 text-muted-foreground" />
                     </button>
                     <span className="w-4 text-center text-xs font-extrabold">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-6 h-6 rounded-lg flex items-center justify-center bg-accent text-white hover:bg-accent/90">
+                    <button onClick={() => updateQuantity(item.product.id, item.servingType, item.quantity + 1)} className="w-6 h-6 rounded-lg flex items-center justify-center bg-accent text-white hover:bg-accent/90">
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
-                  <button onClick={() => updateQuantity(item.product.id, 0)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                  <button onClick={() => updateQuantity(item.product.id, item.servingType, 0)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-              ))}
+              )})}
             </div>
 
             <div className="border-t border-border pt-4">
@@ -345,26 +367,31 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
                       <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed border-border/60 rounded-2xl">
                         No items added yet.<br />Tap items from the menu to add.
                       </div>
-                    ) : items.map(item => (
-                      <div key={item.product.id} className="flex items-center justify-between gap-3 bg-secondary/30 p-3 rounded-2xl border border-border/50">
+                    ) : items.map(item => {
+                      const itemPrice = (item.servingType === 'HALF' ? item.product.halfPlatePrice : (item.product.fullPlatePrice || item.product.price)) || 0;
+                      return (
+                      <div key={`${item.product.id}-${item.servingType}`} className="flex items-center justify-between gap-3 bg-secondary/30 p-3 rounded-2xl border border-border/50">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-xs leading-tight truncate">{item.product.name}</h4>
-                          <div className="text-xs text-accent font-bold mt-0.5">{fmtPrice(item.product.price * item.quantity)}</div>
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="font-semibold text-xs leading-tight truncate">{item.product.name}</h4>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-secondary border border-border text-muted-foreground">{item.servingType}</span>
+                          </div>
+                          <div className="text-xs text-accent font-bold mt-0.5">{fmtPrice(itemPrice * item.quantity)}</div>
                         </div>
                         <div className="flex items-center gap-2 bg-secondary border border-border rounded-xl p-1">
-                          <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-card">
+                          <button onClick={() => updateQuantity(item.product.id, item.servingType, item.quantity - 1)} className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-card">
                             <Minus className="w-3 h-3 text-muted-foreground" />
                           </button>
                           <span className="w-4 text-center text-xs font-extrabold">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-6 h-6 rounded-lg flex items-center justify-center bg-accent text-white hover:bg-accent/90">
+                          <button onClick={() => updateQuantity(item.product.id, item.servingType, item.quantity + 1)} className="w-6 h-6 rounded-lg flex items-center justify-center bg-accent text-white hover:bg-accent/90">
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
-                        <button onClick={() => updateQuantity(item.product.id, 0)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                        <button onClick={() => updateQuantity(item.product.id, item.servingType, 0)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </div>
 
@@ -389,6 +416,35 @@ export default function AdminOrderForm({ params }: { params: Promise<{ id: strin
           )}
         </AnimatePresence>
       </div>
+
+      {/* Serving Type Selector Modal */}
+      <AnimatePresence>
+        {selectedProductForServing && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedProductForServing(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-card rounded-3xl border border-border w-full max-w-sm shadow-2xl overflow-hidden p-6" onClick={e => e.stopPropagation()}>
+              <h3 className="text-xl font-bold mb-1">{selectedProductForServing.name}</h3>
+              <p className="text-sm text-muted-foreground mb-6">Select serving size</p>
+              
+              <div className="space-y-3 mb-6">
+                <button onClick={() => addItemWithServing(selectedProductForServing, 'HALF')} className="w-full flex items-center justify-between p-4 rounded-xl border border-border bg-secondary/30 hover:border-accent hover:bg-accent/5 transition-colors">
+                  <span className="font-semibold">Half Plate</span>
+                  <span className="font-bold text-accent">{fmtPrice(selectedProductForServing.halfPlatePrice || 0)}</span>
+                </button>
+                <button onClick={() => addItemWithServing(selectedProductForServing, 'FULL')} className="w-full flex items-center justify-between p-4 rounded-xl border border-border bg-secondary/30 hover:border-accent hover:bg-accent/5 transition-colors">
+                  <span className="font-semibold">Full Plate</span>
+                  <span className="font-bold text-accent">{fmtPrice(selectedProductForServing.fullPlatePrice || 0)}</span>
+                </button>
+              </div>
+              <button onClick={() => setSelectedProductForServing(null)} className="w-full py-3 rounded-xl bg-secondary text-foreground font-semibold text-sm hover:bg-secondary/80 transition-colors">
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

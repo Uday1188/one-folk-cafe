@@ -1,4 +1,4 @@
-import { Clock, Check, Ban } from "lucide-react";
+import { Clock, Check, Ban, DollarSign, XCircle } from "lucide-react";
 import { Order } from "@/types";
 
 export const CATEGORIES = [
@@ -37,5 +37,15 @@ export const STATUS_ICONS: Record<string, React.ReactNode> = {
   PENDING: <Clock className="w-3.5 h-3.5" />,
   COMPLETED: <Check className="w-3.5 h-3.5" />,
   CANCELLED: <Ban className="w-3.5 h-3.5" />,
+};
+
+export const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  UNPAID: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800",
+  PAID: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800",
+};
+
+export const PAYMENT_STATUS_ICONS: Record<string, React.ReactNode> = {
+  UNPAID: <XCircle className="w-3.5 h-3.5" />,
+  PAID: <DollarSign className="w-3.5 h-3.5" />,
 };
 

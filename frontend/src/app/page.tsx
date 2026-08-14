@@ -9,6 +9,7 @@ import { CATEGORIES } from '@/lib/constants';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProducts, fetchSettings } from '@/lib/api';
 import { Product } from '@/types';
+import { GamesSection } from '@/features/games/components/GamesSection';
 
 const formatTimeLabel = (time?: string) => {
   if (!time) return "";
@@ -31,7 +32,7 @@ export default function Home() {
   const router = useRouter();
   const [lightboxImg, setLightboxImg] = useState<{ src: string; title: string; category: string } | null>(null);
 
-  const { data: fetchedProducts } = useQuery({
+  const { data: fetchedProducts = [] } = useQuery({
     queryKey: ['products'],
     queryFn: fetchProducts,
   });
@@ -83,11 +84,11 @@ export default function Home() {
     tags: ["Chef's Favorite"]
   })) : [];
 
-  const featured = settings?.featuredProductIds?.length 
+  const featured = settings?.featuredProductIds?.length
     ? settings.featuredProductIds
-        .map(id => products.find(p => p.id === id))
-        .filter((p): p is Product => p !== undefined)
-        .slice(0, 4)
+      .map(id => products.find(p => p.id === id))
+      .filter((p): p is Product => p !== undefined)
+      .slice(0, 4)
     : products.slice(0, 4);
 
   const fmtPrice = (p: number) => `₹${p.toLocaleString("en-IN")}`;
@@ -95,7 +96,7 @@ export default function Home() {
   return (
     <div className="min-h-screen selection:bg-accent selection:text-white overflow-x-hidden">
       <Navbar />
-      
+
       {/* Hero Section with Parallax Zoom & Floating Elegance */}
       <section className="relative min-h-screen flex items-center overflow-hidden bg-[#160e0a]">
         <div className="absolute inset-0 z-0">
@@ -121,39 +122,39 @@ export default function Home() {
 
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
           <div className="max-w-3xl">
-            <motion.div 
-              initial={{ opacity: 0, y: 35 }} 
-              animate={{ opacity: 1, y: 0 }} 
+            <motion.div
+              initial={{ opacity: 0, y: 35 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
             >
               <div className="inline-flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-widest mb-6 sm:mb-8 shadow-lg">
                 <ShieldCheck className="w-4 h-4 text-green-400 flex-shrink-0" />
                 <span>100% Pure Veg & Artisanal Coffee in Nashik</span>
               </div>
-              
+
               <h1 className="text-[42px] sm:text-7xl lg:text-8xl font-black text-white leading-[1.06] tracking-tight mb-6 sm:mb-8" style={{ fontFamily: 'var(--font-display)' }}>
                 Where Every<br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-[#e6a86c] to-[#f4d1ad]">Sip</span> Tells a<br />
                 Story.
               </h1>
-              
+
               <p className="text-base sm:text-xl text-white/85 leading-relaxed mb-8 sm:mb-10 max-w-xl font-normal">
                 Experience Nashik's premier culinary refuge. Handcrafted gourmet vegetarian dining, rich espresso brews, and unforgettable conversational ambiance.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 sm:gap-4">
-                <button 
+                <button
                   onClick={handleExplore}
                   className="group relative w-full sm:w-auto justify-center inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-accent via-accent to-[#d48c3d] text-white font-extrabold text-base shadow-xl shadow-accent/30 hover:shadow-2xl hover:shadow-accent/50 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-300"
                 >
-                  <Utensils className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" /> 
+                  <Utensils className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
                   <span>Explore Digital Showcase</span>
                   <ArrowUpRight className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                 </button>
 
-                <a 
-                  href="https://maps.app.goo.gl/Lmo6tdHUpUYa79427" 
-                  target="_blank" 
+                <a
+                  href="https://maps.app.goo.gl/Lmo6tdHUpUYa79427"
+                  target="_blank"
                   rel="noreferrer"
                   className="w-full sm:w-auto justify-center inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-extrabold text-base backdrop-blur-xl border border-white/25 transition-all duration-300 active:scale-[0.97] hover:-translate-y-0.5"
                 >
@@ -193,39 +194,39 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {[
-              { 
-                step: "01", 
-                icon: <ScanLine className="w-8 h-8 text-accent group-active:text-white transition-colors" />, 
-                title: "Scan & Explore", 
-                desc: "Scan our table QR or visit our showcase on your phone to immerse yourself in high-resolution photography and menu descriptions." 
+              {
+                step: "01",
+                icon: <ScanLine className="w-8 h-8 text-accent group-active:text-white transition-colors" />,
+                title: "Scan & Explore",
+                desc: "Scan our table QR or visit our showcase on your phone to immerse yourself in high-resolution photography and menu descriptions."
               },
-              { 
-                step: "02", 
-                icon: <Leaf className="w-8 h-8 text-green-500 group-active:text-white transition-colors" />, 
-                title: "Discover Pure Veg Delights", 
-                desc: "Browse Nashik's finest selection of 100% pure vegetarian gourmet appetizers, authentic pastas, and artisanal espresso creations." 
+              {
+                step: "02",
+                icon: <Leaf className="w-8 h-8 text-green-500 group-active:text-white transition-colors" />,
+                title: "Discover Pure Veg Delights",
+                desc: "Browse Nashik's finest selection of 100% pure vegetarian gourmet appetizers, authentic pastas, and artisanal espresso creations."
               },
-              { 
-                step: "03", 
-                icon: <Coffee className="w-8 h-8 text-amber-500 group-active:text-white transition-colors" />, 
-                title: "Savour Table Hospitality", 
-                desc: "Place your order with our friendly cafe hosts at your table or counter. Sit back as our kitchen crafts everything hot and fresh." 
+              {
+                step: "03",
+                icon: <Coffee className="w-8 h-8 text-amber-500 group-active:text-white transition-colors" />,
+                title: "Savour Table Hospitality",
+                desc: "Place your order with our friendly cafe hosts at your table or counter. Sit back as our kitchen crafts everything hot and fresh."
               },
             ].map((step, i) => (
-              <motion.div 
+              <motion.div
                 key={step.step}
-                initial={{ opacity: 0, y: 36, scale: 0.94 }} 
+                initial={{ opacity: 0, y: 36, scale: 0.94 }}
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, margin: "-40px" }} 
+                viewport={{ once: true, margin: "-40px" }}
                 whileTap={{ scale: 0.965, y: -4 }}
                 transition={{ delay: i * 0.15, duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
                 className="gpu-accelerated group relative bg-card dark:bg-[#241d18] rounded-3xl p-7 sm:p-8 shadow-sm border border-border/60 dark:border-white/10 hover:shadow-2xl active:shadow-[0_20px_45px_rgba(198,134,66,0.22)] hover:shadow-accent/12 active:border-accent/60 hover:-translate-y-1.5 active:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer"
               >
                 <div className="absolute -inset-px bg-gradient-to-br from-accent/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-400 pointer-events-none" />
-                
+
                 <div>
                   <div className="flex items-center justify-between mb-6 sm:mb-8">
-                    <motion.div 
+                    <motion.div
                       initial={{ scale: 0.7, opacity: 0, rotate: -10 }}
                       whileInView={{ scale: 1, opacity: 1, rotate: 0 }}
                       viewport={{ once: true }}
@@ -254,7 +255,7 @@ export default function Home() {
       {/* Fan Favourites: Featured Culinary Art Showcase */}
       <section className="py-20 sm:py-28 bg-background relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
@@ -269,22 +270,22 @@ export default function Home() {
                 Most Loved Creations
               </h2>
             </div>
-            <button 
+            <button
               onClick={() => router.push("/menu")}
               className="group w-full sm:w-auto justify-center inline-flex items-center gap-2 px-6 py-3.5 sm:py-3 rounded-2xl bg-secondary hover:bg-accent active:bg-accent hover:text-white active:text-white font-extrabold text-sm transition-all duration-300 shadow-sm self-start sm:self-auto active:scale-95"
             >
-              <span>Explore Entire Showcase</span> 
+              <span>Explore Entire Showcase</span>
               <ArrowUpRight className="w-4 h-4 text-accent group-hover:text-white group-active:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-active:translate-x-1 group-active:-translate-y-1 transition-transform" />
             </button>
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {featured.map((p, i) => (
-              <motion.div 
-                key={p.id} 
-                initial={{ opacity: 0, y: 32, scale: 0.96 }} 
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, y: 32, scale: 0.96 }}
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, margin: "-30px" }} 
+                viewport={{ once: true, margin: "-30px" }}
                 whileTap={{ scale: 0.965, y: -2 }}
                 transition={{ delay: i * 0.12, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
                 onClick={() => router.push(`/product/${p.id}`)}
@@ -292,14 +293,14 @@ export default function Home() {
               >
                 <div>
                   <div className="relative aspect-square sm:aspect-[4/3] lg:aspect-square bg-secondary overflow-hidden">
-                    <img 
-                      src={p.image} 
-                      alt={p.name} 
+                    <img
+                      src={p.image}
+                      alt={p.name}
                       loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-110 group-active:scale-108 transition-transform duration-700 ease-out" 
+                      className="w-full h-full object-cover group-hover:scale-110 group-active:scale-108 transition-transform duration-700 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-40 sm:opacity-30 group-hover:opacity-65 group-active:opacity-70 transition-opacity duration-300" />
-                    
+
                     {p.tags && p.tags.filter(t => t !== "New").length > 0 && (
                       <div className="absolute top-3 left-3 z-20">
                         <span className="px-3 py-1 rounded-full bg-white/95 dark:bg-[#1a1512]/95 backdrop-blur-md text-xs font-bold text-primary dark:text-accent shadow-sm flex items-center gap-1 border border-white/20">
@@ -343,7 +344,7 @@ export default function Home() {
       {/* NEW: Cafe Atmosphere & Culinary Art Gallery Section */}
       <section className="py-20 sm:py-28 bg-secondary/20 border-y border-border/40 relative overflow-hidden" id="gallery">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
@@ -448,7 +449,7 @@ export default function Home() {
       {/* Categories Marquee */}
       <section className="py-16 sm:py-20 bg-gradient-to-b from-primary via-[#452f20] to-primary overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent/15 via-transparent to-transparent pointer-events-none" />
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 sm:mb-12 text-center relative z-10">
           <span className="text-accent font-extrabold text-xs tracking-widest uppercase mb-2 block">100% Pure Vegetarian Offerings</span>
           <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Explore by Culinary Specialty</h2>
@@ -458,7 +459,7 @@ export default function Home() {
         <div className="relative w-full overflow-hidden flex z-10">
           <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-20 bg-gradient-to-r from-primary to-transparent z-20 pointer-events-none" />
           <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-20 bg-gradient-to-l from-primary to-transparent z-20 pointer-events-none" />
-          
+
           <style dangerouslySetInnerHTML={{
             __html: `
             @keyframes marquee {
@@ -477,8 +478,8 @@ export default function Home() {
 
           <div className="marquee-track gap-5 sm:gap-8 py-4">
             {[...CATEGORIES, ...CATEGORIES, ...CATEGORIES].map((cat, i) => (
-              <button 
-                key={cat.name + i} 
+              <button
+                key={cat.name + i}
                 onClick={() => router.push(`/menu?category=${encodeURIComponent(cat.name)}`)}
                 className="gpu-accelerated flex flex-col items-center gap-3 sm:gap-4 p-5 sm:p-6 rounded-3xl bg-white/5 hover:bg-white/15 active:bg-white/20 active:scale-95 active:border-accent backdrop-blur-md border border-white/10 hover:border-accent/50 group min-w-[155px] sm:min-w-[190px] flex-shrink-0 transition-all duration-300 hover:shadow-xl active:shadow-2xl active:shadow-accent/30 hover:shadow-accent/20 hover:-translate-y-1 active:-translate-y-0.5"
               >
@@ -522,21 +523,21 @@ export default function Home() {
               </div>
             </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, x: 30, scale: 0.95 }} 
-              whileInView={{ opacity: 1, x: 0, scale: 1 }} 
-              viewport={{ once: true, margin: "-40px" }} 
+            <motion.div
+              initial={{ opacity: 0, x: 30, scale: 0.95 }}
+              whileInView={{ opacity: 1, x: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
               className="gpu-accelerated relative group mt-4 sm:mt-0 active:scale-[0.99] transition-transform duration-300"
             >
               <div className="absolute -inset-4 bg-gradient-to-tr from-accent/30 via-[#d99752]/20 to-primary/10 rounded-[40px] blur-2xl opacity-60 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-700 pointer-events-none" />
-              
+
               <div className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-secondary border-2 border-border/80 shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
-                <img 
+                <img
                   src={settings?.ourStoryImage || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=700&h=875&fit=crop&auto=format"}
-                  alt="One Folk Cafe atmosphere" 
+                  alt="One Folk Cafe atmosphere"
                   loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-105 group-active:scale-105 transition-transform duration-700 ease-out" 
+                  className="w-full h-full object-cover group-hover:scale-105 group-active:scale-105 transition-transform duration-700 ease-out"
                 />
               </div>
 
@@ -555,6 +556,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Interactive Games Section */}
+      <GamesSection />
+
       {/* Contact & Map Location */}
       <section className="py-20 sm:py-28 bg-secondary/10 relative z-10" id="contact">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -571,10 +575,10 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 items-start">
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }} 
-              whileInView={{ opacity: 1, y: 0 }} 
-              viewport={{ once: true }} 
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
               transition={{ duration: 0.6 }}
               className="lg:col-span-5 bg-card dark:bg-[#241d18] rounded-3xl border border-border/70 dark:border-white/10 shadow-lg p-6 sm:p-10 space-y-7 sm:space-y-8"
             >
@@ -612,45 +616,45 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/50">
-                <a 
-                  href="https://maps.app.goo.gl/Lmo6tdHUpUYa79427" 
-                  target="_blank" 
+                <a
+                  href="https://maps.app.goo.gl/Lmo6tdHUpUYa79427"
+                  target="_blank"
                   rel="noreferrer"
                   className="w-full sm:flex-1 flex items-center justify-center gap-2 px-6 py-4 sm:py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[#7a553b] text-white font-extrabold text-sm transition-all duration-300 shadow-lg active:scale-[0.98]"
                 >
-                  <MapPin className="w-4.5 h-4.5 text-accent flex-shrink-0" /> 
+                  <MapPin className="w-4.5 h-4.5 text-accent flex-shrink-0" />
                   <span>Open in Google Maps</span>
                 </a>
 
                 {settings?.instagramLink && (
-                  <a 
-                    href={settings.instagramLink} 
-                    target="_blank" 
+                  <a
+                    href={settings.instagramLink}
+                    target="_blank"
                     rel="noreferrer"
                     className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 sm:py-3.5 rounded-2xl bg-secondary hover:bg-red-500 hover:text-white text-foreground font-bold text-sm transition-all duration-300 border border-border/60 shadow-sm active:scale-[0.98]"
                   >
-                    <Heart className="w-4.5 h-4.5 text-red-500 hover:text-white transition-colors flex-shrink-0" /> 
+                    <Heart className="w-4.5 h-4.5 text-red-500 hover:text-white transition-colors flex-shrink-0" />
                     <span>Instagram</span>
                   </a>
                 )}
               </div>
             </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }} 
-              whileInView={{ opacity: 1, y: 0 }} 
-              viewport={{ once: true }} 
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.15 }}
               className="lg:col-span-7 rounded-3xl overflow-hidden border-2 border-border/80 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.1)] h-[440px] sm:h-[560px] relative group"
             >
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3748.8!2d73.83385!3d20.02296!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bddeb006e29c58f%3A0xdf5a50b4a51aef7a!2sOne%20Folk%20Cafe!5e0!3m2!1sen!2sin!4v1"
-                width="100%" 
-                height="100%" 
-                style={{ border: 0 }} 
-                loading="lazy" 
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
                 allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade" 
+                referrerPolicy="no-referrer-when-downgrade"
                 title="One Folk Cafe Location"
                 className="absolute inset-0 filter saturate-[1.1]"
               />
@@ -660,13 +664,13 @@ export default function Home() {
                 </span>
               </div>
               <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
-                <a 
-                  href="https://maps.app.goo.gl/Lmo6tdHUpUYa79427" 
-                  target="_blank" 
+                <a
+                  href="https://maps.app.goo.gl/Lmo6tdHUpUYa79427"
+                  target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-white/95 dark:bg-[#1a1512]/95 backdrop-blur-xl text-primary dark:text-white font-extrabold text-xs sm:text-sm shadow-2xl border border-white/30 hover:bg-accent hover:text-white dark:hover:bg-accent dark:hover:text-white transition-all duration-300 active:scale-[0.98]"
                 >
-                  <MapPin className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-accent group-hover:text-white transition-colors flex-shrink-0" /> 
+                  <MapPin className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-accent group-hover:text-white transition-colors flex-shrink-0" />
                   <span className="truncate">Get Driving Directions to One Folk Cafe</span>
                   <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
                 </a>

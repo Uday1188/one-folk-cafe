@@ -17,9 +17,9 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
            "GROUP BY oi.product.id ORDER BY totalQuantity DESC")
     List<Object[]> findTopSellingProducts(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
 
-    @Query("SELECT p.name, COUNT(DISTINCT o.id), SUM(oi.quantity * oi.price) FROM OrderItem oi " +
+    @Query("SELECT p.name, oi.servingType, COUNT(DISTINCT o.id), SUM(oi.quantity * oi.price), SUM(oi.quantity) FROM OrderItem oi " +
            "JOIN oi.order o JOIN oi.product p " +
            "WHERE o.status = 'COMPLETED' AND o.createdAt >= :startDate AND o.createdAt <= :endDate " +
-           "GROUP BY p.name ORDER BY SUM(oi.quantity * oi.price) DESC")
+           "GROUP BY p.name, oi.servingType ORDER BY SUM(oi.quantity * oi.price) DESC")
     List<Object[]> findTopProductsByRevenue(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
 }

@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X as XIcon, ChevronDown, Check, Sparkles, Utensils } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { fetchProducts } from '@/lib/api';
+import { fetchProducts, fetchCategories } from '@/lib/api';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { CATEGORIES } from '@/lib/constants';
+import { CategoryAvatar } from '@/components/shared/CategoryAvatar';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { Product } from '@/types';
 
@@ -20,6 +20,30 @@ function MenuContent() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
+  const { data: fetchedProducts, isLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: fetchProducts,
+  });
+
+  const { data: fetchedCategories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  });
+
+  const categories = useMemo(() => {
+    if (!fetchedProducts || !fetchedCategories.length) return [];
+    return fetchedCategories.filter((cat: any) => 
+      fetchedProducts.some((p: any) => p.categoryName === cat.name || p.category?.name === cat.name || p.category === cat.name)
+    );
+  }, [fetchedCategories, fetchedProducts]);
+
+  const resolveImageUrl = (src: string) => {
+    if (!src) return '';
+    if (src.startsWith('http://') || src.startsWith('https://')) return src;
+    const backendBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/api$/, '');
+    return backendBase + src;
+  };
+
   const scrollToMenuSection = () => {
     setTimeout(() => {
       const el = document.getElementById('menu-section');
@@ -31,20 +55,15 @@ function MenuContent() {
 
   useEffect(() => {
     if (categoryQuery) {
-      const matched = CATEGORIES.find(
-        c => c.name.toLowerCase() === categoryQuery.toLowerCase() ||
-             c.name.toLowerCase().includes(categoryQuery.toLowerCase()) ||
-             categoryQuery.toLowerCase().includes(c.name.toLowerCase())
+      const matched = categories.find(
+        (c: any) => c.name.toLowerCase() === categoryQuery.toLowerCase() ||
+          c.name.toLowerCase().includes(categoryQuery.toLowerCase()) ||
+          categoryQuery.toLowerCase().includes(c.name.toLowerCase())
       );
       setActiveCategory(matched ? matched.name : categoryQuery);
       scrollToMenuSection();
     }
-  }, [categoryQuery]);
-
-  const { data: fetchedProducts, isLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: fetchProducts,
-  });
+  }, [categoryQuery, categories]);
 
   const products: Product[] = useMemo(() => {
     if (!fetchedProducts) return [];
@@ -122,15 +141,14 @@ function MenuContent() {
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
             <button
               onClick={() => handleCategorySelect("All")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all active:scale-95 flex-shrink-0 ${
-                activeCategory === "All"
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all active:scale-95 flex-shrink-0 ${activeCategory === "All"
                   ? "bg-accent text-white shadow-md shadow-accent/20"
                   : "bg-secondary/70 hover:bg-secondary text-secondary-foreground"
-              }`}
+                }`}
             >
               🍽️ All ({products.length})
             </button>
-            {CATEGORIES.map(cat => {
+            {categories.map((cat: any) => {
               const isSelected = activeCategory.toLowerCase() === cat.name.toLowerCase() || activeCategory.toLowerCase().includes(cat.name.toLowerCase());
               return (
                 <button
@@ -142,96 +160,37 @@ function MenuContent() {
                       : "bg-secondary/70 hover:bg-secondary text-secondary-foreground"
                   }`}
                 >
-                  <span>{cat.emoji}</span>
+                  <CategoryAvatar 
+                    name={cat.name} 
+                    image={cat.image}
+                    className="w-5 h-5 rounded-full"
+                    fallbackClassName="bg-white/20 text-[10px]"
+                  />
                   <span>{cat.name}</span>
                 </button>
               );
             })}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
             {/* Search Input */}
-            <div className="relative flex-1 w-full group">
+            <div className="relative flex-1 w-full group mt-3">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground group-focus-within:text-accent transition-colors" />
               <input
-                type="text" 
-                value={search} 
+                type="text"
+                value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search specialty coffee, teas, bites, or ingredients..."
                 className="w-full pl-11 pr-10 py-3 rounded-xl bg-secondary/40 dark:bg-card/60 border border-border/70 focus:bg-white dark:focus:bg-card focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300 text-sm font-medium shadow-2xs"
               />
               {search && (
-                <button 
-                  onClick={() => setSearch("")} 
+                <button
+                  onClick={() => setSearch("")}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <XIcon className="w-4 h-4" />
                 </button>
               )}
             </div>
-
-            {/* Category Select Dropdown */}
-            <div className="relative z-50 w-full sm:w-[260px] flex-shrink-0">
-              <button
-                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-card dark:bg-[#241d18] hover:bg-secondary active:scale-[0.99] text-foreground font-bold text-xs sm:text-sm border border-border focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all shadow-sm"
-                aria-expanded={isCategoryOpen}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Utensils className="w-4 h-4 text-accent flex-shrink-0" />
-                  {activeCategory === "All" ? (
-                    <span>All Specialties</span>
-                  ) : (
-                    <span className="flex items-center gap-2 truncate">
-                      <span>{CATEGORIES.find(c => c.name === activeCategory)?.emoji}</span>
-                      <span className="truncate">{activeCategory}</span>
-                    </span>
-                  )}
-                </div>
-                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-300 flex-shrink-0 ${isCategoryOpen ? "rotate-180" : ""}`} />
-              </button>
-
-              <AnimatePresence>
-                {isCategoryOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsCategoryOpen(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.96 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                      className="absolute top-full left-0 right-0 mt-2 p-2 bg-white/95 dark:bg-[#241d18]/95 backdrop-blur-2xl border border-border rounded-2xl shadow-2xl z-50 max-h-[65vh] overflow-y-auto scrollbar-hide space-y-1"
-                    >
-                      <button
-                        onClick={() => handleCategorySelect("All")}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-[0.98] ${
-                          activeCategory === "All" ? "bg-accent text-white shadow-md" : "hover:bg-secondary/70 text-foreground"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">🍽️ All Specialties</span>
-                        {activeCategory === "All" && <Check className="w-4 h-4" />}
-                      </button>
-                      {CATEGORIES.map(cat => (
-                        <button
-                          key={cat.name}
-                          onClick={() => handleCategorySelect(cat.name)}
-                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-[0.98] ${
-                            activeCategory === cat.name ? "bg-accent text-white shadow-md" : "hover:bg-secondary/70 text-foreground"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span>{cat.emoji}</span>
-                            <span>{cat.name}</span>
-                          </div>
-                          {activeCategory === cat.name && <Check className="w-4 h-4" />}
-                        </button>
-                      ))}
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -247,7 +206,7 @@ function MenuContent() {
             <div className="text-6xl mb-4 animate-bounce" style={{ animationDuration: '2s' }}>☕</div>
             <h3 className="text-2xl font-bold mb-2">No menu delicacies matched your filter</h3>
             <p className="text-muted-foreground max-w-md mx-auto text-sm px-4">Try searching for something else or clearing your active category filter.</p>
-            <button 
+            <button
               onClick={() => handleCategorySelect("All")}
               className="mt-6 px-8 py-3.5 rounded-2xl bg-accent text-white font-bold text-sm shadow-lg hover:shadow-xl active:scale-95 transition-all"
             >
@@ -264,7 +223,7 @@ function MenuContent() {
                 </span>
               </h2>
             </div>
-            <motion.div 
+            <motion.div
               layout
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-7"
             >

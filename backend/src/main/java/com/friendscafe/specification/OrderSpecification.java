@@ -2,6 +2,7 @@ package com.friendscafe.specification;
 
 import com.friendscafe.entity.Order;
 import com.friendscafe.entity.OrderStatus;
+import com.friendscafe.entity.PaymentStatus;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -13,6 +14,7 @@ public class OrderSpecification {
 
     public static Specification<Order> getOrdersByCriteria(
             OrderStatus status, 
+            PaymentStatus paymentStatus,
             String tableNumber, 
             String search, 
             LocalDateTime startDate, 
@@ -23,6 +25,10 @@ public class OrderSpecification {
 
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
+
+            if (paymentStatus != null) {
+                predicates.add(criteriaBuilder.equal(root.get("paymentStatus"), paymentStatus));
             }
 
             if (tableNumber != null && !tableNumber.trim().isEmpty()) {

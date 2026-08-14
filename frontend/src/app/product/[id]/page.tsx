@@ -173,8 +173,21 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 sm:gap-6">
                 <div>
-                  <span className="text-xs font-bold text-accent uppercase tracking-widest block mb-1">Cafe Dining Price</span>
-                  <div className="text-3xl sm:text-4xl font-black text-primary dark:text-white tracking-tight">{fmtPrice(product.price)}</div>
+                  {product.halfPlateAvailable ? (
+                    <>
+                      <span className="text-xs font-bold text-accent uppercase tracking-widest block mb-1">Cafe Dining Price (Half / Full)</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xl sm:text-2xl font-black text-muted-foreground">{fmtPrice(product.halfPlatePrice || 0)}</span>
+                        <span className="text-muted-foreground/40 text-lg px-0.5">/</span>
+                        <span className="text-3xl sm:text-4xl font-black text-primary dark:text-white tracking-tight">{fmtPrice(product.fullPlatePrice || product.price)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs font-bold text-accent uppercase tracking-widest block mb-1">Cafe Dining Price</span>
+                      <div className="text-3xl sm:text-4xl font-black text-primary dark:text-white tracking-tight">{fmtPrice(product.fullPlatePrice || product.price)}</div>
+                    </>
+                  )}
                   <span className="text-[11px] text-muted-foreground mt-1 block">Taxes & presentation included</span>
                 </div>
                 

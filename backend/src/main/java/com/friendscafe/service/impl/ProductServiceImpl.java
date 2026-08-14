@@ -25,7 +25,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductDto> getAllProducts() {
-        return productRepository.findAll().stream()
+        return productRepository.findAllByOrderByIdAsc().stream()
                 .map(productMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -50,10 +50,25 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryRepository.findById(productDto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.getCategoryId()));
 
+        // Validate half plate configuration
+        if (Boolean.TRUE.equals(productDto.getHalfPlateAvailable())) {
+            if (productDto.getHalfPlatePrice() == null || productDto.getHalfPlatePrice().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Half plate price must be greater than 0 when half plate is enabled");
+            }
+            if (productDto.getHalfPlatePrice().compareTo(productDto.getFullPlatePrice()) > 0) {
+                throw new IllegalArgumentException("Half plate price cannot be greater than full plate price");
+            }
+        } else {
+            productDto.setHalfPlatePrice(null); // Clear half plate price if not available
+        }
+
         Product product = productMapper.toEntity(productDto);
         product.setCategory(category);
         if (product.getAvailable() == null) {
             product.setAvailable(true);
+        }
+        if (product.getHalfPlateAvailable() == null) {
+            product.setHalfPlateAvailable(false);
         }
 
         Product savedProduct = productRepository.save(product);
@@ -69,9 +84,23 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryRepository.findById(productDto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.getCategoryId()));
 
+        // Validate half plate configuration
+        if (Boolean.TRUE.equals(productDto.getHalfPlateAvailable())) {
+            if (productDto.getHalfPlatePrice() == null || productDto.getHalfPlatePrice().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Half plate price must be greater than 0 when half plate is enabled");
+            }
+            if (productDto.getHalfPlatePrice().compareTo(productDto.getFullPlatePrice()) > 0) {
+                throw new IllegalArgumentException("Half plate price cannot be greater than full plate price");
+            }
+        } else {
+            productDto.setHalfPlatePrice(null); // Clear half plate price if not available
+        }
+
         product.setName(productDto.getName());
         product.setDescription(productDto.getDescription());
-        product.setPrice(productDto.getPrice());
+        product.setFullPlatePrice(productDto.getFullPlatePrice());
+        product.setHalfPlatePrice(productDto.getHalfPlatePrice());
+        product.setHalfPlateAvailable(productDto.getHalfPlateAvailable() != null ? productDto.getHalfPlateAvailable() : false);
         product.setImageUrl(productDto.getImageUrl());
         product.setCategory(category);
         product.setAvailable(productDto.getAvailable());
