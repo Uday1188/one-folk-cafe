@@ -14,8 +14,4 @@ public class HealthController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Backend is active and warm", "UP"));
     }
 
-    @GetMapping("/api/keep-alive")
-    public String keepAlive() {
-        return "OK";
-    }
 }

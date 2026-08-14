@@ -37,8 +37,8 @@ export function Navbar() {
           <div className="flex items-center justify-between h-20 transition-all duration-300">
             {/* Animated Logo */}
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary via-[#7a553b] to-accent flex items-center justify-center shadow-lg shadow-accent/20 group-hover:scale-105 group-hover:shadow-accent/40 transition-all duration-300">
-                <Coffee className="w-5 h-5 text-white group-hover:rotate-12 transition-transform duration-300" />
+              <div className="w-10 h-10 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg shadow-accent/20 group-hover:scale-105 group-hover:shadow-accent/40 transition-all duration-300 relative bg-white">
+                <img src="/logo.png" alt="One Folk Cafe Logo" className="w-full h-full object-cover group-hover:rotate-12 transition-transform duration-300" />
               </div>
               <div className="text-left">
                 <span className="block text-xl leading-none font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>

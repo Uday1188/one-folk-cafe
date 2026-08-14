@@ -32,8 +32,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 sm:gap-12 mb-12 sm:mb-16">
           <div className="md:col-span-5 space-y-5 sm:space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-accent to-[#d99752] flex items-center justify-center shadow-lg shadow-accent/20 flex-shrink-0">
-                <Coffee className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg shadow-accent/20 flex-shrink-0 bg-white">
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div>
                 <span className="text-2xl font-bold tracking-tight block" style={{ fontFamily: 'var(--font-display)' }}>{settings?.cafeName || "One Folk Cafe"}</span>

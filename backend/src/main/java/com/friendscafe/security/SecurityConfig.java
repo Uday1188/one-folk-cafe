@@ -61,7 +61,7 @@ public class SecurityConfig {
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> 
-                auth.requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/hash", "/api/health", "/api/keep-alive").permitAll()
+                auth.requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/hash", "/api/health").permitAll()
                     .requestMatchers("/api/public/**").permitAll() // Public endpoints if any
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll()
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
