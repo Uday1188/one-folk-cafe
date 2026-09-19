@@ -43,7 +43,11 @@ fs.writeFileSync(
 let buildSucceeded = false;
 try {
   console.log('=== STEP 4: Compiling Admin Standalone Next.js Bundle ===');
-  execSync('npm run build', { cwd: frontendDir, stdio: 'inherit' });
+  execSync('npm run build', { 
+    cwd: frontendDir, 
+    stdio: 'inherit',
+    env: { ...process.env, STANDALONE_BUILD: 'true' }
+  });
   buildSucceeded = true;
 
   console.log('=== STEP 5: Deploying Clean Admin Bundle to admin-desktop ===');
