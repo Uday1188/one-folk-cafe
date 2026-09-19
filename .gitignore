@@ -20,3 +20,17 @@ backend/out/
 *.iml
 *.class
 *.log
+
+# Desktop & Build Artifacts
+admin-desktop/dist/
+admin-desktop/node_modules/
+admin-desktop/resources/backend.jar
+admin-desktop/resources/frontend/
+*.zip
+*.tar.gz
+*.exe
+*.jar
+*.db
+*.sqlite
+backend/data/
+.customer_backup/

@@ -125,16 +125,6 @@ export function Footer() {
           <div>
             <span>© 2026 One Folk Cafe. Handcrafted for coffee lovers.</span>
           </div>
-          <div className="flex items-center gap-2.5">
-            <span className="opacity-80 font-normal">Staff / Cafe Owner?</span>
-            <button 
-              className="px-4 py-2 sm:py-1.5 rounded-xl bg-accent/25 text-accent hover:bg-accent hover:text-white font-bold transition-all shadow-sm flex items-center gap-1.5 group active:scale-95" 
-              onClick={() => router.push('/admin/login')}
-            >
-              <span>Admin Dashboard</span>
-              <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-            </button>
-          </div>
         </div>
       </div>
     </footer>

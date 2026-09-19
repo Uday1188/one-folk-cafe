@@ -1,0 +1,61 @@
+{
+  "name": "one-folk-cafe-admin",
+  "version": "1.0.0",
+  "description": "One Folk Cafe - Windows Desktop Admin Application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-packager . \"One Folk Cafe Admin\" --platform=win32 --arch=x64 --out=dist --overwrite --extra-resource=resources/backend.jar --extra-resource=resources/frontend --extra-resource=resources/icon.png",
+    "pack": "electron-packager . \"One Folk Cafe Admin\" --platform=win32 --arch=x64 --out=dist --overwrite --extra-resource=resources/backend.jar --extra-resource=resources/frontend --extra-resource=resources/icon.png",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "one-folk-cafe",
+    "admin",
+    "desktop",
+    "electron"
+  ],
+  "author": "One Folk Cafe",
+  "license": "ISC",
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^30.0.8",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.onefolkcafe.admin",
+    "productName": "One Folk Cafe Admin",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html",
+      "resources/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/",
+        "to": "resources/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "One Folk Cafe Admin"
+    }
+  }
+}

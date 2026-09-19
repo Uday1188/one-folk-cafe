@@ -78,7 +78,7 @@ function AdminOrdersContent() {
     })
   });
 
-  const { data: orders = [], isLoading } = useQuery({ 
+  const { data: rawOrders = [], isLoading } = useQuery({ 
     queryKey: ['orders', filter, paymentFilter, tableFilter, timeRange, startDate, endDate, page], 
     queryFn: () => fetchOrders({
       page: page,
@@ -90,6 +90,7 @@ function AdminOrdersContent() {
       endDate: computedEnd
     })
   });
+  const orders = Array.isArray(rawOrders) ? rawOrders : (rawOrders?.content || []);
 
   // Handle instant modal opening when notification is clicked (no website reload required!)
   useEffect(() => {
@@ -333,7 +334,7 @@ function AdminOrdersContent() {
             </tr></thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">Loading orders...</td></tr>
+                <tr><td colSpan={8} className="px-5 py-12 text-center text-muted-foreground">Loading orders...</td></tr>
               ) : orders.map((o: any) => (
                 <tr key={o.id} onClick={() => setViewOrder(o)} className="hover:bg-secondary/20 transition-colors cursor-pointer">
                   <td className="px-5 py-4 font-mono font-bold text-xs text-primary">{o.id}</td>
@@ -398,7 +399,7 @@ function AdminOrdersContent() {
                 </tr>
               ))}
               {orders.length === 0 && !isLoading && (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">No orders found.</td></tr>
+                <tr><td colSpan={8} className="px-5 py-12 text-center text-muted-foreground">No orders found.</td></tr>
               )}
             </tbody>
           </table>

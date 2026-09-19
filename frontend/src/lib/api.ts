@@ -1,10 +1,23 @@
 import { api } from './axios';
 import { Category, Product, ApiResponse, Order, OrderRequest, CafeSettings, Notification, CafeTable } from '@/types';
-
+import { STATIC_PRODUCTS, STATIC_CATEGORIES } from '@/data/products';
 
 export const fetchCategories = async (): Promise<Category[]> => {
-  const response = await api.get<ApiResponse<Category[]>>('/categories');
-  return response.data.data;
+  try {
+    const response = await api.get<ApiResponse<Category[]>>('/categories', { timeout: 2500 });
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      return response.data.data.map(c => {
+        const match = STATIC_CATEGORIES.find(sc => sc.name.toLowerCase() === c.name.toLowerCase());
+        return {
+          ...c,
+          image: c.image && !c.image.endsWith('.jpg') ? c.image : (match?.image || c.image)
+        };
+      });
+    }
+  } catch (e) {
+    // Static fallback for customer website
+  }
+  return STATIC_CATEGORIES as any;
 };
 
 export const createCategory = async (category: Partial<Category>) => {
@@ -23,13 +36,48 @@ export const deleteCategory = async (id: number) => {
 };
 
 export const fetchProducts = async (): Promise<Product[]> => {
-  const response = await api.get<ApiResponse<Product[]>>('/products');
-  return response.data.data;
+  try {
+    const response = await api.get<ApiResponse<Product[]>>('/products', { timeout: 2500 });
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      return response.data.data.map(p => {
+        const match = STATIC_PRODUCTS.find(sp => sp.name.toLowerCase() === p.name.toLowerCase() || sp.id === p.id);
+        const img = p.imageUrl || match?.image || "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=600&auto=format&fit=crop";
+        return {
+          ...p,
+          imageUrl: img,
+          image: img,
+          images: [img],
+          description: p.description || match?.description || "Freshly prepared to order."
+        };
+      });
+    }
+  } catch (e) {
+    // Static fallback for customer website
+  }
+  return STATIC_PRODUCTS as any;
 };
 
 export const fetchProductById = async (id: number): Promise<Product> => {
-  const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
-  return response.data.data;
+  try {
+    const response = await api.get<ApiResponse<Product>>(`/products/${id}`, { timeout: 2500 });
+    if (response.data && response.data.data) {
+      const p = response.data.data;
+      const match = STATIC_PRODUCTS.find(sp => sp.id === p.id || sp.name.toLowerCase() === p.name.toLowerCase());
+      const img = p.imageUrl || match?.image || "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=600&auto=format&fit=crop";
+      return {
+        ...p,
+        imageUrl: img,
+        image: img,
+        images: [img],
+        description: p.description || match?.description || "Freshly prepared to order."
+      };
+    }
+  } catch (e) {
+    // Static fallback for customer website
+  }
+  const match = STATIC_PRODUCTS.find(sp => sp.id === Number(id));
+  if (match) return match as any;
+  return STATIC_PRODUCTS[0] as any;
 };
 
 export const createOrder = async (order: OrderRequest): Promise<Order> => {
@@ -127,8 +175,25 @@ export const deleteOrder = async (id: number) => {
 };
 
 export const fetchSettings = async (): Promise<CafeSettings> => {
-  const response = await api.get<ApiResponse<CafeSettings>>('/settings');
-  return response.data.data;
+  try {
+    const response = await api.get<ApiResponse<CafeSettings>>('/settings', { timeout: 2500 });
+    if (response.data && response.data.data) {
+      return response.data.data;
+    }
+  } catch (e) {
+    // Static fallback
+  }
+  return {
+    cafeName: 'One Folk Cafe',
+    address: 'Nashik, Maharashtra',
+    phone: '9322331131',
+    email: 'hello@onefolkcafe.in',
+    openTime: '08:00',
+    closeTime: '22:00',
+    instagramLink: 'https://instagram.com/onefolkcafe',
+    description: 'Crafting artisanal coffees, signature pizzas and cherished memories in Nashik.',
+    featuredProductIds: [1, 6, 12, 17]
+  };
 };
 
 export const updateSettings = async (settings: CafeSettings): Promise<CafeSettings> => {
@@ -167,3 +232,14 @@ export const fetchTables = async (): Promise<CafeTable[]> => {
   const response = await api.get<CafeTable[]>('/tables');
   return response.data;
 };
+
+export const fetchBackupInfo = async () => {
+  const response = await api.get<ApiResponse<{ path: string; exists: boolean; sizeBytes: number; lastModified: string | null }>>('/admin/backup/info');
+  return response.data.data;
+};
+
+export const exportPublicMenu = async () => {
+  const response = await api.post<ApiResponse<{ filePath: string; publishedAt: string; categoriesCount: number; productsCount: number }>>('/admin/publish-menu/export-local');
+  return response.data.data;
+};
+

@@ -52,16 +52,16 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("SELECT o.status, COUNT(o) FROM Order o WHERE o.createdAt >= :startDate AND o.createdAt <= :endDate GROUP BY o.status")
     List<Object[]> countOrdersByStatusInDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
-    @Query(value = "SELECT TO_CHAR(created_at, 'HH24:00') as label, SUM(total_amount) as revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= :startDate AND created_at <= :endDate GROUP BY TO_CHAR(created_at, 'HH24:00') ORDER BY label ASC", nativeQuery = true)
+    @Query(value = "SELECT (CASE WHEN typeof(created_at) = 'integer' THEN strftime('%H:00', created_at / 1000, 'unixepoch', 'localtime') ELSE strftime('%H:00', created_at) END) as label, SUM(total_amount) as revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= :startDate AND created_at <= :endDate GROUP BY label ORDER BY label ASC", nativeQuery = true)
     List<Object[]> getHourlyRevenueTrend(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
-    @Query(value = "SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as label, SUM(total_amount) as revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= :startDate AND created_at <= :endDate GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY label ASC", nativeQuery = true)
+    @Query(value = "SELECT (CASE WHEN typeof(created_at) = 'integer' THEN strftime('%Y-%m-%d', created_at / 1000, 'unixepoch', 'localtime') ELSE strftime('%Y-%m-%d', created_at) END) as label, SUM(total_amount) as revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= :startDate AND created_at <= :endDate GROUP BY label ORDER BY label ASC", nativeQuery = true)
     List<Object[]> getDailyRevenueTrend(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
-    @Query(value = "SELECT TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD') as label, SUM(total_amount) as revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= :startDate AND created_at <= :endDate GROUP BY DATE_TRUNC('week', created_at) ORDER BY DATE_TRUNC('week', created_at) ASC", nativeQuery = true)
+    @Query(value = "SELECT (CASE WHEN typeof(created_at) = 'integer' THEN strftime('%Y-%m-%d', created_at / 1000, 'unixepoch', 'localtime', 'weekday 0', '-6 days') ELSE strftime('%Y-%m-%d', created_at, 'weekday 0', '-6 days') END) as label, SUM(total_amount) as revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= :startDate AND created_at <= :endDate GROUP BY label ORDER BY label ASC", nativeQuery = true)
     List<Object[]> getWeeklyRevenueTrend(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
-    @Query(value = "SELECT TO_CHAR(DATE_TRUNC('month', created_at), 'Mon') as label, SUM(total_amount) as revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= :startDate AND created_at <= :endDate GROUP BY DATE_TRUNC('month', created_at) ORDER BY DATE_TRUNC('month', created_at) ASC", nativeQuery = true)
+    @Query(value = "SELECT (CASE WHEN typeof(created_at) = 'integer' THEN strftime('%Y-%m', created_at / 1000, 'unixepoch', 'localtime') ELSE strftime('%Y-%m', created_at) END) as label, SUM(total_amount) as revenue FROM orders WHERE payment_status = 'PAID' AND created_at >= :startDate AND created_at <= :endDate GROUP BY label ORDER BY label ASC", nativeQuery = true)
     List<Object[]> getMonthlyRevenueTrend(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
     @Query("SELECT o FROM Order o WHERE o.createdAt >= :startDate AND o.createdAt <= :endDate ORDER BY o.createdAt DESC")
