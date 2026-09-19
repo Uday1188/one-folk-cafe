@@ -32,7 +32,7 @@ export const STATIC_CATEGORIES: StaticCategory[] = [
   { id: 4, name: 'Pizza', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop' },
   { id: 5, name: 'Burgers & Sandwiches', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=600&auto=format&fit=crop' },
   { id: 6, name: 'Pastas & Nachos', image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?q=80&w=600&auto=format&fit=crop' },
-  { id: 7, name: 'Fries', image: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?q=80&w=600&auto=format&fit=crop' },
+  { id: 7, name: 'Fries', image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=800&auto=format&fit=crop' },
   { id: 8, name: 'Maggi', image: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?q=80&w=600&auto=format&fit=crop' },
   { id: 9, name: 'Milk Shakes', image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?q=80&w=600&auto=format&fit=crop' },
   { id: 10, name: 'Drinks - Mocktails', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=600&auto=format&fit=crop' },
@@ -219,8 +219,11 @@ export const STATIC_PRODUCTS: StaticProduct[] = [
     fullPlatePrice: 79,
     category: 'Bread',
     categoryName: 'Bread',
-    image: 'https://images.unsplash.com/photo-1573140247632-f8fd74997d5c?q=80&w=600&auto=format&fit=crop',
-    images: ['https://images.unsplash.com/photo-1573140247632-f8fd74997d5c?q=80&w=600&auto=format&fit=crop'],
+    image: 'https://images.unsplash.com/photo-1619895092538-128341789043?q=80&w=800&auto=format&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1619895092538-128341789043?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?q=80&w=800&auto=format&fit=crop'
+    ],
     available: true,
     rating: 4.8,
     reviewCount: 178,
@@ -522,8 +525,11 @@ export const STATIC_PRODUCTS: StaticProduct[] = [
     fullPlatePrice: 149,
     category: 'Pastas & Nachos',
     categoryName: 'Pastas & Nachos',
-    image: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281691?q=80&w=600&auto=format&fit=crop',
-    images: ['https://images.unsplash.com/photo-1621996346565-e3d5d6281691?q=80&w=600&auto=format&fit=crop'],
+    image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?q=80&w=800&auto=format&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1551183053-bf91a1d81141?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=800&auto=format&fit=crop'
+    ],
     available: true,
     rating: 4.8,
     reviewCount: 175,
@@ -635,8 +641,11 @@ export const STATIC_PRODUCTS: StaticProduct[] = [
     fullPlatePrice: 109,
     category: 'Fries',
     categoryName: 'Fries',
-    image: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?q=80&w=600&auto=format&fit=crop',
-    images: ['https://images.unsplash.com/photo-1576107232684-1279f3908594?q=80&w=600&auto=format&fit=crop'],
+    image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=800&auto=format&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?q=80&w=800&auto=format&fit=crop'
+    ],
     available: true,
     rating: 4.9,
     reviewCount: 310,

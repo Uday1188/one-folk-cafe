@@ -10,6 +10,7 @@ import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '@/types';
 import { resolveImageUrl } from '@/lib/utils';
+import { STATIC_PRODUCTS } from '@/data/products';
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
@@ -23,26 +24,35 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   });
 
   const product: Product | undefined = useMemo(() => {
-    if (!fetchedProducts) return undefined;
-    const p = fetchedProducts.find((item: any) => String(item.id) === id);
+    const staticMatch = STATIC_PRODUCTS.find((item: any) => String(item.id) === id || item.name.toLowerCase() === String(id).toLowerCase());
+    const p: any = fetchedProducts?.find((item: any) => String(item.id) === id) || staticMatch;
     if (!p) return undefined;
-    
+
+    const resolvedImage = p.image || p.imageUrl || staticMatch?.image || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=800&auto=format&fit=crop";
+    const resolvedImages = (p.images && p.images.length > 0) ? p.images : (staticMatch?.images && staticMatch.images.length > 0) ? staticMatch.images : [resolvedImage];
+
     return {
       ...p,
-      id: p.id,
+      id: Number(p.id),
+      categoryId: p.categoryId ?? (staticMatch as any)?.categoryId ?? 1,
       name: p.name,
-      description: p.description || "Freshly handcrafted with 100% pure vegetarian ingredients, made to order with expert care by our cafe artisans.",
-      category: p.categoryName || p.category || "Specialty",
-      categoryName: p.categoryName,
-      price: p.price,
-      image: p.imageUrl || "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=800&auto=format&fit=crop",
-      images: p.imageUrl ? [p.imageUrl] : ["https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=800&auto=format&fit=crop"],
+      description: p.description || staticMatch?.description || "Freshly handcrafted with 100% pure vegetarian ingredients, made to order with expert care by our cafe artisans.",
+      category: p.categoryName || p.category || staticMatch?.category || "Specialty",
+      categoryName: p.categoryName || p.category || staticMatch?.categoryName || "Specialty",
+      price: p.price ?? staticMatch?.price ?? 99,
+      fullPlatePrice: p.fullPlatePrice ?? staticMatch?.fullPlatePrice ?? p.price ?? 99,
+      halfPlatePrice: p.halfPlatePrice ?? staticMatch?.halfPlatePrice,
+      halfPlateAvailable: Boolean(p.halfPlateAvailable ?? staticMatch?.halfPlateAvailable),
+      image: resolvedImage,
+      imageUrl: resolvedImage,
+      images: resolvedImages,
       available: p.available !== false,
-      rating: 4.8,
-      reviewCount: 124,
-      ingredients: ["Fresh Espresso", "Pure Milk", "Artisanal Syrup", "Love"],
-      prepTime: 12,
-      tags: ["Chef's Recommendation"]
+      rating: p.rating || staticMatch?.rating || 4.8,
+      reviewCount: p.reviewCount || staticMatch?.reviewCount || 124,
+      ingredients: (p.ingredients && p.ingredients.length > 0) ? p.ingredients : (staticMatch?.ingredients && staticMatch.ingredients.length > 0) ? staticMatch.ingredients : ["Fresh Veggies", "Special Herbs", "Pure Olive Oil"],
+      prepTime: p.prepTime || staticMatch?.prepTime || 10,
+      tags: (p.tags && p.tags.length > 0) ? p.tags : (staticMatch?.tags && staticMatch.tags.length > 0) ? staticMatch.tags : ["Chef's Recommendation"],
+      isVegetarian: true,
     };
   }, [fetchedProducts, id]);
 

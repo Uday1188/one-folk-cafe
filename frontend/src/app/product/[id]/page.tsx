@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import ProductDetailClient from './ProductDetailClient';
 import { fetchProducts } from '@/lib/api';
+import { STATIC_PRODUCTS } from '@/data/products';
 import { ProductSchema } from '@/components/seo/ProductSchema';
 
 type Props = {
@@ -9,29 +10,20 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  let title = "Product Not Found | One Folk Cafe";
-  let description = "This product could not be found.";
-  let imageUrl = "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=800&auto=format&fit=crop";
+  const staticMatch = STATIC_PRODUCTS.find((p: any) => String(p.id) === id);
+  let product: any = staticMatch;
 
   try {
     const products = await fetchProducts();
-    const product = products?.find((p: any) => String(p.id) === id);
-    if (product) {
-      title = `${product.name} | One Folk Cafe`;
-      description = product.description || `Enjoy our freshly prepared ${product.name}, a 100% pure veg delicacy crafted by One Folk Cafe.`;
-      
-      if (product.imageUrl) {
-        if (product.imageUrl.startsWith('http')) {
-          imageUrl = product.imageUrl;
-        } else {
-          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-          imageUrl = baseUrl.replace(/\/api$/, '') + product.imageUrl;
-        }
-      }
-    }
+    const found = products?.find((p: any) => String(p.id) === id);
+    if (found) product = { ...staticMatch, ...found };
   } catch (error) {
-    console.error("Failed to fetch product for metadata", error);
+    // Ignore
   }
+
+  const title = product ? `${product.name} | One Folk Cafe` : "Product Not Found | One Folk Cafe";
+  const description = product?.description || "This product could not be found.";
+  const imageUrl = product?.image || product?.imageUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=800&auto=format&fit=crop";
 
   return {
     title,
@@ -60,25 +52,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
-  let product = null;
+  const staticMatch = STATIC_PRODUCTS.find((p: any) => String(p.id) === id);
+  let product: any = staticMatch;
 
   try {
     const products = await fetchProducts();
-    product = products?.find((p: any) => String(p.id) === id);
+    const found = products?.find((p: any) => String(p.id) === id);
+    if (found) product = { ...staticMatch, ...found };
   } catch (error) {
     // Ignore, let client handle it
   }
 
-  let imageUrl = "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=800&auto=format&fit=crop";
-  if (product?.imageUrl) {
-    if (product.imageUrl.startsWith('http')) {
-      imageUrl = product.imageUrl;
-    } else {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-      imageUrl = baseUrl.replace(/\/api$/, '') + product.imageUrl;
-    }
-  }
-
+  const imageUrl = product?.image || product?.imageUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=800&auto=format&fit=crop";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://onefolkcafe.in';
 
   return (
