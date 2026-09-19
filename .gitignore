@@ -26,6 +26,7 @@ admin-desktop/dist/
 admin-desktop/node_modules/
 admin-desktop/resources/backend.jar
 admin-desktop/resources/frontend/
+admin-desktop/resources/jre/
 *.zip
 *.tar.gz
 *.exe
