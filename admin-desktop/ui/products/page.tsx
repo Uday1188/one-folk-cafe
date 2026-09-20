@@ -28,25 +28,48 @@ export default function AdminProducts() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) => createProduct(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); toast.success("Product added!"); setShowModal(false); },
-    onError: () => toast.error("Failed to add product")
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['products'] }); 
+      toast.success("Product added successfully!"); 
+      setShowModal(false); 
+    },
+    onError: (err: any) => {
+      console.error("Failed to add product:", err);
+      const msg = err?.response?.data?.message || err?.message || "Failed to add product";
+      toast.error(msg);
+    }
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number, data: any }) => updateProduct(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); toast.success("Product updated!"); setShowModal(false); },
-    onError: () => toast.error("Failed to update product")
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['products'] }); 
+      toast.success("Product updated successfully!"); 
+      setShowModal(false); 
+    },
+    onError: (err: any) => {
+      console.error("Failed to update product:", err);
+      const msg = err?.response?.data?.message || err?.message || "Failed to update product";
+      toast.error(msg);
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteProduct(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); toast.success("Product deleted!"); setProductToDelete(null); },
-    onError: () => { toast.error("Failed to delete product"); setProductToDelete(null); }
+    onError: (err: any) => { 
+      toast.error(err?.response?.data?.message || "Failed to delete product"); 
+      setProductToDelete(null); 
+    }
   });
 
   const createCategoryMutation = useMutation({
     mutationFn: (data: { name: string, image?: string }) => createCategory(data),
     onSuccess: (newCat) => { 
+      queryClient.setQueryData(['categories'], (old: any) => {
+        if (!old) return [newCat];
+        return [...old, newCat];
+      });
       queryClient.invalidateQueries({ queryKey: ['categories'] }); 
       setForm(f => ({ ...f, category: newCat.name }));
       setIsAddingCategory(false);
@@ -55,7 +78,7 @@ export default function AdminProducts() {
       setCatDropdownOpen(false);
       toast.success("Category added!"); 
     },
-    onError: () => toast.error("Failed to add category")
+    onError: (err: any) => toast.error(err?.response?.data?.message || "Failed to add category")
   });
 
   const filtered = products.filter((p: any) => {
@@ -66,49 +89,150 @@ export default function AdminProducts() {
 
   const openAdd = () => {
     setEditingId(null);
-    setForm({ name: "", description: "", category: categories.length > 0 ? categories[0].name : "Coffee", fullPlatePrice: "", halfPlatePrice: "", halfPlateAvailable: false, image: "", available: true });
-    setShowModal(true);
-  };
-
-  const openEdit = (p: any) => {
-    setEditingId(p.id);
-    setForm({ name: p.name, description: p.description || "", category: p.categoryName || "Coffee", fullPlatePrice: String(p.fullPlatePrice || p.price), halfPlatePrice: p.halfPlatePrice ? String(p.halfPlatePrice) : "", halfPlateAvailable: p.halfPlateAvailable || false, image: p.imageUrl || "", available: p.available });
+    const defaultCat = categories.length > 0 ? categories[0].name : "Hot Beverages";
+    setForm({ 
+      name: "", 
+      description: "", 
+      category: defaultCat, 
+      fullPlatePrice: "", 
+      halfPlatePrice: "", 
+      halfPlateAvailable: false, 
+      image: "", 
+      available: true 
+    });
     setShowModal(true);
     setCatDropdownOpen(false);
     setIsAddingCategory(false);
     setNewCatImage("");
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setForm(f => ({ ...f, image: ev.target?.result as string }));
-    reader.readAsDataURL(file);
+  const openEdit = (p: any) => {
+    setEditingId(p.id);
+    setForm({ 
+      name: p.name, 
+      description: p.description || "", 
+      category: p.categoryName || (categories.length > 0 ? categories[0].name : "Hot Beverages"), 
+      fullPlatePrice: String(p.fullPlatePrice || p.price), 
+      halfPlatePrice: p.halfPlatePrice ? String(p.halfPlatePrice) : "", 
+      halfPlateAvailable: Boolean(p.halfPlateAvailable), 
+      image: p.imageUrl || "", 
+      available: p.available 
+    });
+    setShowModal(true);
+    setCatDropdownOpen(false);
+    setIsAddingCategory(false);
+    setNewCatImage("");
   };
 
-  const handleCatImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1000;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setNewCatImage(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file);
+      if (compressed) {
+        setForm(f => ({ ...f, image: compressed }));
+      }
+    } catch {
+      toast.error("Failed to process image");
+    }
+  };
+
+  const handleCatImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file);
+      if (compressed) {
+        setNewCatImage(compressed);
+      }
+    } catch {
+      toast.error("Failed to process image");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.fullPlatePrice) { toast.error("Name and full plate price are required"); return; }
+    if (!form.name.trim()) { 
+      toast.error("Product name is required"); 
+      return; 
+    }
+    const fullPrice = parseFloat(form.fullPlatePrice);
+    if (!form.fullPlatePrice || isNaN(fullPrice) || fullPrice <= 0) { 
+      toast.error("Please enter a valid full plate price greater than 0"); 
+      return; 
+    }
     
-    // Find category ID
-    const cat = categories.find((c: any) => c.name === form.category);
-    if (!cat) { toast.error("Please select a valid category"); return; }
+    // Validate half plate configuration
+    let halfPrice: number | null = null;
+    if (form.halfPlateAvailable) {
+      if (!form.halfPlatePrice || isNaN(parseFloat(form.halfPlatePrice))) {
+        toast.error("Please enter a half plate price or disable half plate option");
+        return;
+      }
+      halfPrice = parseFloat(form.halfPlatePrice);
+      if (halfPrice <= 0) {
+        toast.error("Half plate price must be greater than 0");
+        return;
+      }
+      if (halfPrice > fullPrice) {
+        toast.error("Half plate price cannot be greater than full plate price");
+        return;
+      }
+    }
+
+    // Find category ID safely
+    let cat = categories.find((c: any) => c.name.toLowerCase() === form.category.toLowerCase());
+    if (!cat && categories.length > 0) {
+      cat = categories[0];
+    }
+    if (!cat) { 
+      toast.error("Please select or add a category first"); 
+      return; 
+    }
 
     const payload = { 
-      name: form.name, 
-      description: form.description, 
+      name: form.name.trim(), 
+      description: form.description ? form.description.trim() : "", 
       categoryId: cat.id, 
-      fullPlatePrice: parseFloat(form.fullPlatePrice), 
-      halfPlatePrice: form.halfPlateAvailable && form.halfPlatePrice ? parseFloat(form.halfPlatePrice) : null,
+      fullPlatePrice: fullPrice, 
+      halfPlatePrice: halfPrice,
       halfPlateAvailable: form.halfPlateAvailable,
       imageUrl: form.image || null, 
       available: form.available 

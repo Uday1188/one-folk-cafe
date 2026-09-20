@@ -43,6 +43,10 @@ fs.writeFileSync(
 let buildSucceeded = false;
 try {
   console.log('=== STEP 4: Compiling Admin Standalone Next.js Bundle ===');
+  const nextCacheDir = path.join(frontendDir, '.next');
+  if (fs.existsSync(nextCacheDir)) {
+    fs.rmSync(nextCacheDir, { recursive: true, force: true });
+  }
   execSync('npm run build', { 
     cwd: frontendDir, 
     stdio: 'inherit',
@@ -89,6 +93,10 @@ try {
 
 if (buildSucceeded) {
   console.log('=== STEP 7: Rebuilding Customer Site for Vercel ===');
+  const nextCacheDir = path.join(frontendDir, '.next');
+  if (fs.existsSync(nextCacheDir)) {
+    fs.rmSync(nextCacheDir, { recursive: true, force: true });
+  }
   execSync('npm run build', { cwd: frontendDir, stdio: 'inherit' });
   console.log('=== ALL COMPLETED SUCCESSFULLY! ===');
 } else {

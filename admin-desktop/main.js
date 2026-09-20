@@ -332,6 +332,7 @@ function createMainWindow() {
     icon: getIconPath(),
     show: false,
     backgroundColor: '#120d0b',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -339,6 +340,10 @@ function createMainWindow() {
       webSecurity: true
     }
   });
+
+  // Remove default File, Edit, View, Window, Help menu
+  mainWindow.removeMenu();
+  Menu.setApplicationMenu(null);
 
   // Security: Prevent navigation outside local host and open external links in system browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -623,6 +628,7 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null);
   setupIPC();
   createSplashWindow();
   createTray();

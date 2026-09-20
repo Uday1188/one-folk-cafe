@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Shield, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Shield, Eye, EyeOff } from 'lucide-react';
 import { adminLogin } from '@/lib/api';
 
 export default function AdminLogin() {
@@ -11,8 +11,16 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('expired') === 'true') {
+        setError("Your session expired. Please sign in again.");
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +46,6 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
-      <button onClick={() => router.push("/")}
-        className="absolute top-6 left-6 flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-all px-4 py-2 rounded-xl bg-card border border-border shadow-sm hover:shadow-md">
-        <ArrowLeft className="w-4 h-4" /> Back to Cafe
-      </button>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-card rounded-3xl shadow-xl border border-border overflow-hidden">
         <div className="bg-gradient-to-br from-primary to-primary/80 p-8 text-center">

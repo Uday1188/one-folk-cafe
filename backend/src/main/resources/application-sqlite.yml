@@ -26,3 +26,12 @@ spring:
 server:
   address: 127.0.0.1
   port: ${PORT:8080}
+  tomcat:
+    max-http-form-post-size: 50MB
+    max-swallow-size: 50MB
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
